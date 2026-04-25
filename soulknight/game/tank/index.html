@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>元气坦克：电脑一命版</title>
+    <title>元气坦克：分散弹修复版</title>
     <style>
         body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
@@ -86,7 +86,7 @@
         constructor(x, y, color, controls, isAI = false) {
             this.x = x; this.y = y; this.color = color;
             this.angle = isAI ? 0 : 180; 
-            this.hp = isAI ? 1 : 3; // 电脑只有1条命
+            this.hp = isAI ? 1 : 3;
             this.speed = isAI ? 1.6 : 2.4;
             this.controls = controls; this.isAI = isAI;
             this.skill = null; this.lastShoot = 0; this.freezeUntil = 0; this.invincibleUntil = 0;
@@ -143,15 +143,27 @@
 
         shoot() {
             if (Date.now() - this.lastShoot < 800) return;
-            bullets.push(new Bullet(this.x, this.y, this.angle, this.color, this.skill==='pierce'));
-            this.skill = null; this.updateUI();
+            
+            // --- 核心修复：分散弹逻辑 ---
+            if (this.skill === 'spread') {
+                // 向三个方向发射：左偏20度，正向，右偏20度
+                for (let offset of [-20, 0, 20]) {
+                    bullets.push(new Bullet(this.x, this.y, this.angle + offset, this.color, false));
+                }
+            } else {
+                // 普通弹或穿甲弹
+                bullets.push(new Bullet(this.x, this.y, this.angle, this.color, this.skill === 'pierce'));
+            }
+            
+            this.skill = null; 
+            this.updateUI();
             this.lastShoot = Date.now();
         }
 
         updateUI() {
             if (!this.isAI) {
                 const el = document.getElementById(this === p1 ? "sk1" : "sk2");
-                if(el) el.innerText = this.skill || "无";
+                if(el) el.innerText = this.skill === 'spread' ? "分散弹" : (this.skill === 'pierce' ? "穿甲弹" : "无");
             }
         }
     }
@@ -223,7 +235,6 @@
                         t.invincibleUntil = Date.now()+2000;
                         document.getElementById(t===p1?"hp1":"hp2").innerText = Math.max(0, t.hp);
                     }
-                    // 爆炸效果
                     for(let i=0; i<15; i++) particles.push(new Particle(t.x, t.y, t.color));
                 }
             });
