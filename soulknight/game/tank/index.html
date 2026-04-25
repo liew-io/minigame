@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>元气坦克：完美出生避障版</title>
+    <title>元气坦克：电脑一命版</title>
     <style>
         body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
@@ -21,8 +21,8 @@
 <div class="hud">
     <div class="hp-box p1">P1: <span id="hp1">3</span> ❤️ | 技能: <span id="sk1">无</span></div>
     <div class="hp-box p2">P2: <span id="hp2">3</span> ❤️ | 技能: <span id="sk2">无</span></div>
-    <div class="hp-box timer-info">下一波: <span id="boxTimer">30</span>s</div>
-    <div class="hp-box limit-info">敌军上限: <span id="aiMaxUI">3</span>/10</div>
+    <div class="hp-box timer-info">难度升级: <span id="boxTimer">30</span>s</div>
+    <div class="hp-box limit-info">电脑上限: <span id="aiMaxUI">3</span>/10</div>
 </div>
 
 <canvas id="tankCanvas" width="800" height="600"></canvas>
@@ -31,7 +31,7 @@
 <script>
     const canvas = document.getElementById("tankCanvas");
     const ctx = canvas.getContext("2d");
-    const TANK_SIZE = 24, WALL_SIZE = 40, B_SPEED = 7; // 稍微缩小坦克碰撞体积到24
+    const TANK_SIZE = 24, WALL_SIZE = 40, B_SPEED = 7;
     let isGameOver = false, boxTime = 30, aiMaxLimit = 3;
 
     const map = [
@@ -52,19 +52,16 @@
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     ];
 
-    // --- 核心修复：安全生成逻辑 ---
-    // 寻找指定区域内的第一个空地
     function getSafeSpawn(area = "all") {
         let startR = 0, endR = 14, startC = 0, endC = 19;
         if(area === "topLeft") { endR = 5; endC = 5; }
         if(area === "bottomRight") { startR = 10; startC = 14; }
-
-        for(let i=0; i<200; i++) { // 随机尝试，如果失败则遍历
+        for(let i=0; i<200; i++) {
             let r = Math.floor(Math.random() * (endR - startR + 1)) + startR;
             let c = Math.floor(Math.random() * (endC - startC + 1)) + startC;
             if(map[r][c] === 0) return { x: c * 40 + 20, y: r * 40 + 20 };
         }
-        return { x: 400, y: 300 }; // 保底中心
+        return { x: 400, y: 300 };
     }
 
     class Particle {
@@ -73,7 +70,7 @@
             this.vx = (Math.random() - 0.5) * 6; this.vy = (Math.random() - 0.5) * 6;
             this.life = 1.0; this.color = color;
         }
-        update() { this.x += this.vx; this.y += this.vy; this.life -= 0.04; }
+        update() { this.x += this.vx; this.y += this.vy; this.life -= 0.05; }
         draw() { ctx.globalAlpha = this.life; ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, 3, 3); ctx.globalAlpha = 1; }
     }
 
@@ -81,16 +78,16 @@
         constructor(x, y, type) { this.x = x; this.y = y; this.type = type; this.active = true; }
         draw() {
             ctx.fillStyle = this.type === 'spread' ? "#f472b6" : "#fbbf24";
-            ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
             ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
-            ctx.shadowBlur = 0;
         }
     }
 
     class Tank {
         constructor(x, y, color, controls, isAI = false) {
             this.x = x; this.y = y; this.color = color;
-            this.angle = isAI ? 0 : 180; this.hp = 3; this.speed = isAI ? 1.5 : 2.4;
+            this.angle = isAI ? 0 : 180; 
+            this.hp = isAI ? 1 : 3; // 电脑只有1条命
+            this.speed = isAI ? 1.6 : 2.4;
             this.controls = controls; this.isAI = isAI;
             this.skill = null; this.lastShoot = 0; this.freezeUntil = 0; this.invincibleUntil = 0;
             this.aiDirTimer = 0; this.aiKey = "";
@@ -110,13 +107,13 @@
             if (this.isAI) {
                 if (Date.now() > this.aiDirTimer) {
                     this.aiKey = ["W","A","S","D"][Math.floor(Math.random()*4)];
-                    this.aiDirTimer = Date.now() + 1000 + Math.random()*2000;
+                    this.aiDirTimer = Date.now() + 800 + Math.random()*1500;
                 }
                 let dx=0, dy=0;
                 if(this.aiKey==="W"){dy=-this.speed; this.angle=0} else if(this.aiKey==="S"){dy=this.speed; this.angle=180}
                 else if(this.aiKey==="A"){dx=-this.speed; this.angle=270} else if(this.aiKey==="D"){dx=this.speed; this.angle=90}
                 if(!this.tryMove(dx, dy)) this.aiDirTimer = 0;
-                if(Math.random() < 0.01) this.shoot();
+                if(Math.random() < 0.012) this.shoot();
             } else {
                 let dx=0, dy=0;
                 if (keys[this.controls.up]) { dy=-this.speed; this.angle=0 }
@@ -130,17 +127,13 @@
 
         tryMove(dx, dy) {
             let nx = this.x + dx, ny = this.y + dy;
-            let padding = 2; // 增加碰撞内缩边距
-            let half = TANK_SIZE/2 - padding;
-
+            let half = TANK_SIZE/2 - 2;
             if (nx-half < 0 || nx+half > canvas.width || ny-half < 0 || ny+half > canvas.height) return false;
-
             let checkPoints = [{x:nx-half, y:ny-half}, {x:nx+half, y:ny-half}, {x:nx-half, y:ny+half}, {x:nx+half, y:ny+half}];
             for (let p of checkPoints) {
                 let r = Math.floor(p.y/WALL_SIZE), c = Math.floor(p.x/WALL_SIZE);
                 if (map[r] && map[r][c] !== 0) return false;
             }
-
             let all = [p1, p2, ...aiTanks];
             for (let t of all) {
                 if (t !== this && Math.hypot(nx - t.x, ny - t.y) < TANK_SIZE - 2) return false;
@@ -183,7 +176,6 @@
         draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI*2); ctx.fill(); }
     }
 
-    // --- 玩家安全生成 ---
     const p1Pos = getSafeSpawn("topLeft");
     let p1 = new Tank(p1Pos.x, p1Pos.y, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
     const p2Pos = getSafeSpawn("bottomRight");
@@ -192,7 +184,6 @@
     let aiTanks = [], bullets = [], powerUps = [], particles = [];
     const keys = {}; window.onkeydown = e => keys[e.code] = true; window.onkeyup = e => keys[e.code] = false;
 
-    // 定时器：刷新箱子和难度
     setInterval(() => {
         if (isGameOver) return;
         if (--boxTime <= 0) {
@@ -226,13 +217,14 @@
         bullets = bullets.filter(b => {
             b.update(); b.draw();
             [p1, p2, ...aiTanks].forEach(t => {
-                if(b.active && b.color !== t.color && Math.hypot(b.x-t.x, b.y-t.y) < 15 && Date.now() > t.invincibleUntil) {
+                if(b.active && b.color !== t.color && Math.hypot(b.x-t.x, b.y-t.y) < 16 && Date.now() > t.invincibleUntil) {
                     b.active = false; t.hp--; 
                     if(!t.isAI) {
                         t.invincibleUntil = Date.now()+2000;
                         document.getElementById(t===p1?"hp1":"hp2").innerText = Math.max(0, t.hp);
                     }
-                    for(let i=0; i<10; i++) particles.push(new Particle(t.x, t.y, t.color));
+                    // 爆炸效果
+                    for(let i=0; i<15; i++) particles.push(new Particle(t.x, t.y, t.color));
                 }
             });
             return b.active;
