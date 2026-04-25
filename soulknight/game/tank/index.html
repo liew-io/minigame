@@ -2,35 +2,28 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>元气坦克：双人对决修正版</title>
+    <title>元气坦克：道具与碰撞版</title>
     <style>
-        body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
         .hp-box { padding: 5px 15px; border-radius: 10px; font-weight: bold; border: 1px solid rgba(255,255,255,0.1); }
         .p1 { background: rgba(251, 113, 133, 0.2); color: #fb7185; }
         .p2 { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
-        #container { position: relative; margin-top: 20px; }
-        canvas { background-color: #000; border: 4px solid #334155; border-radius: 8px; }
-        #ui { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(30, 41, 59, 0.98); padding: 40px; border-radius: 24px; text-align: center; border: 2px solid #4ade80; z-index: 100; box-shadow: 0 0 40px rgba(0,0,0,0.8); }
-        button { background: #4ade80; color: #0b0f1a; border: none; padding: 12px 40px; font-size: 20px; border-radius: 12px; cursor: pointer; margin-top: 20px; font-weight: bold; }
+        canvas { background-color: #000; border: 4px solid #334155; margin-top: 20px; border-radius: 8px; }
+        #ui { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(30, 41, 59, 0.95); padding: 40px; border-radius: 24px; text-align: center; border: 2px solid #4ade80; }
+        button { background: #4ade80; border: none; padding: 12px 40px; font-size: 20px; border-radius: 12px; cursor: pointer; font-weight: bold; margin-top: 15px;}
     </style>
 </head>
 <body>
 
 <div class="hud">
-    <div class="hp-box p1">P1 (WASD): <span id="hp1">3</span> ❤️</div>
-    <div class="hp-box p2">P2 (方向键): <span id="hp2">3</span> ❤️</div>
-    <div class="hp-box" style="color:#4ade80">敌军 AI: <span id="aiCount">0</span></div>
+    <div class="hp-box p1">P1: <span id="hp1">3</span> ❤️ | 技能: <span id="skill1">无</span></div>
+    <div class="hp-box p2">P2: <span id="hp2">3</span> ❤️ | 技能: <span id="skill2">无</span></div>
+    <div class="hp-box" style="color:#4ade80">敌军: <span id="aiCount">0</span></div>
 </div>
 
-<div id="container">
-    <canvas id="tankCanvas" width="800" height="600"></canvas>
-    <div id="ui">
-        <h1 id="msg" style="color: #fbbf24; font-size: 36px; margin: 0;">游戏结束</h1>
-        <button onclick="location.reload()">重新开战</button>
-    </div>
-</div>
+<canvas id="tankCanvas" width="800" height="600"></canvas>
+<div id="ui"><h1 id="msg"></h1><button onclick="location.reload()">重新开战</button></div>
 
 <script>
     const canvas = document.getElementById("tankCanvas");
@@ -38,227 +31,202 @@
     const TANK_SIZE = 26, B_SIZE = 4, B_SPEED = 7, WALL_SIZE = 40;
     let isGameOver = false;
 
-    const map = [
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0],
-        [0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0],
-        [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0],
-        [0,0,1,1,0,1,1,0,0,0,0,0,0,1,1,0,1,1,0,0],
-        [0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0],
-        [0,1,1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,1,0],
-        [0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0],
-        [0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0],
-        [0,0,0,0,1,1,0,0,1,1,1,1,0,0,1,1,0,0,0,0],
-        [0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0],
-        [0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0],
-        [0,0,0,0,0,1,1,0,1,1,1,1,0,1,1,0,0,0,0,0],
-        [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    ];
+    // 地图与物件
+    const map = Array.from({length: 15}, () => Array(20).fill(0));
+    // 基础墙壁布局
+    [ [1,1],[1,2],[1,5],[1,6],[1,13],[1,14],[1,17],[1,18], [3,2],[3,3],[3,16],[3,17], [6,1],[6,2],[9,4],[9,5] ].forEach(([r,c]) => map[r][c] = 1);
 
-    const keys = {};
-    window.onkeydown = e => keys[e.code] = true;
-    window.onkeyup = e => keys[e.code] = false;
+    class GameObject {
+        constructor(x, y, color) { this.x = x; this.y = y; this.color = color; }
+    }
 
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x; this.y = y;
-            this.vx = (Math.random() - 0.5) * 8;
-            this.vy = (Math.random() - 0.5) * 8;
-            this.life = 1.0;
-            this.color = color;
-        }
-        update() { this.x += this.vx; this.y += this.vy; this.life -= 0.04; }
+    class Box extends GameObject {
         draw() {
-            ctx.globalAlpha = this.life;
-            ctx.fillStyle = this.color;
-            ctx.fillRect(this.x, this.y, 3, 3);
-            ctx.globalAlpha = 1;
+            ctx.fillStyle = "#d97706";
+            ctx.fillRect(this.x * WALL_SIZE + 4, this.y * WALL_SIZE + 4, WALL_SIZE - 8, WALL_SIZE - 8);
+            ctx.strokeStyle = "#92400e"; ctx.strokeRect(this.x * WALL_SIZE + 8, this.y * WALL_SIZE + 8, WALL_SIZE - 16, WALL_SIZE - 16);
         }
     }
-    let particles = [];
+
+    class PowerUp extends GameObject {
+        constructor(x, y, type) {
+            super(x, y); this.type = type; // 'spread' 或 'pierce'
+            this.life = 600; 
+        }
+        draw() {
+            ctx.fillStyle = this.type === 'spread' ? "#f472b6" : "#fbbf24";
+            ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#fff"; ctx.stroke();
+        }
+    }
 
     class Tank {
         constructor(x, y, color, controls, isAI = false) {
             this.x = x; this.y = y; this.color = color;
-            this.angle = 180; this.hp = 3; this.speed = 2.5;
-            this.controls = controls; this.lastShoot = 0;
-            this.isAI = isAI;
-            this.freezeUntil = 0;
-            this.invincibleUntil = 0;
-            this.aiDirTimer = 0;
-            this.aiCurrentKey = "";
+            this.controls = controls; this.isAI = isAI;
+            this.hp = 3; this.angle = 180; this.speed = 2.2;
+            this.skill = null; this.invincibleUntil = 0; this.freezeUntil = 0;
+            this.lastShoot = 0;
         }
 
         draw() {
             const now = Date.now();
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.angle * Math.PI / 180);
-            if (now < this.invincibleUntil) {
-                const isFlashOn = Math.floor(now / 100) % 2 === 0;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = "#ffffff";
-                ctx.fillStyle = isFlashOn ? "#ffffff" : this.color;
-            } else {
-                ctx.fillStyle = this.color;
-            }
+            ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle * Math.PI/180);
+            if (now < this.invincibleUntil && Math.floor(now/100)%2===0) ctx.fillStyle = "#fff";
+            else ctx.fillStyle = this.color;
             ctx.fillRect(-TANK_SIZE/2, -TANK_SIZE/2, TANK_SIZE, TANK_SIZE);
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(-2, -TANK_SIZE/2 - 10, 4, 15);
+            ctx.fillStyle = "#fff"; ctx.fillRect(-2, -TANK_SIZE/2 - 10, 4, 15);
             ctx.restore();
         }
 
-        handleInput() {
-            if (Date.now() < this.freezeUntil) return;
-            if(this.isAI) {
-                this.updateAI();
-            } else {
-                let dx = 0, dy = 0;
-                if (keys[this.controls.up]) { dy = -this.speed; this.angle = 0; }
-                else if (keys[this.controls.down]) { dy = this.speed; this.angle = 180; }
-                else if (keys[this.controls.left]) { dx = -this.speed; this.angle = 270; }
-                else if (keys[this.controls.right]) { dx = this.speed; this.angle = 90; }
-                if(dx !== 0 || dy !== 0) this.tryMove(dx, dy);
-                if (keys[this.controls.shoot]) this.shoot();
-            }
-        }
-
-        updateAI() {
-            if(Date.now() > this.aiDirTimer) {
-                const dirs = ["W","A","S","D"];
-                this.aiCurrentKey = dirs[Math.floor(Math.random()*dirs.length)];
-                this.aiDirTimer = Date.now() + 800 + Math.random()*1000;
-            }
-            let dx = 0, dy = 0;
-            if(this.aiCurrentKey === "W") { dy = -1.8; this.angle = 0; }
-            else if(this.aiCurrentKey === "S") { dy = 1.8; this.angle = 180; }
-            else if(this.aiCurrentKey === "A") { dx = -1.8; this.angle = 270; }
-            else if(this.aiCurrentKey === "D") { dx = 1.8; this.angle = 90; }
-            if(!this.tryMove(dx, dy)) this.aiDirTimer = 0;
-            if(Math.random() < 0.02) this.shoot();
-        }
-
         tryMove(dx, dy) {
+            if (Date.now() < this.freezeUntil) return;
             let nx = this.x + dx, ny = this.y + dy;
-            let half = TANK_SIZE / 2 - 2;
+            let half = TANK_SIZE/2 - 2;
+
+            // 1. 墙壁与边界检测
             let corners = [{x:nx-half, y:ny-half}, {x:nx+half, y:ny-half}, {x:nx-half, y:ny+half}, {x:nx+half, y:ny+half}];
             for (let p of corners) {
                 if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) return false;
-                let col = Math.floor(p.x / WALL_SIZE), row = Math.floor(p.y / WALL_SIZE);
-                if (row >= 0 && row < map.length && col >= 0 && col < map[0].length && map[row][col] === 1) return false;
+                let c = Math.floor(p.x/WALL_SIZE), r = Math.floor(p.y/WALL_SIZE);
+                if (map[r] && (map[r][c] === 1 || map[r][c] === 2)) return false; 
             }
-            this.x = nx; this.y = ny;
-            return true;
+
+            // 2. 坦克间物理碰撞
+            let others = [p1, p2, ...aiTanks].filter(t => t !== this);
+            for (let t of others) {
+                if (Math.hypot(nx - t.x, ny - t.y) < TANK_SIZE) return false;
+            }
+
+            this.x = nx; this.y = ny; return true;
         }
 
         shoot() {
-            if(Date.now() - this.lastShoot < 800) return;
-            bullets.push(new Bullet(this.x, this.y, this.angle, this.color));
+            if (Date.now() - this.lastShoot < 800) return;
+            const isPierce = this.skill === 'pierce';
+            if (this.skill === 'spread') {
+                for(let a of [-20, 0, 20]) bullets.push(new Bullet(this.x, this.y, this.angle + a, this.color, false));
+            } else {
+                bullets.push(new Bullet(this.x, this.y, this.angle, this.color, isPierce));
+            }
+            this.skill = null; this.updateSkillUI();
             this.lastShoot = Date.now();
         }
 
-        getHit() {
-            if (Date.now() < this.invincibleUntil) return; 
-            this.hp--;
-            for(let i=0; i<20; i++) particles.push(new Particle(this.x, this.y, this.color));
-            if (!this.isAI) {
-                this.freezeUntil = Date.now() + 500;
-                this.invincibleUntil = Date.now() + 2000;
-                document.getElementById(this === p1 ? "hp1" : "hp2").innerText = Math.max(0, this.hp);
-            } else {
-                this.hp = 0;
-            }
+        updateSkillUI() {
+            if (this.isAI) return;
+            document.getElementById(this === p1 ? "skill1" : "skill2").innerText = this.skill === 'spread' ? "分散弹" : (this.skill === 'pierce' ? "穿甲弹" : "无");
         }
     }
 
     class Bullet {
-        constructor(x, y, angle, color) {
-            this.x = x; this.y = y; this.angle = angle; this.color = color; this.active = true;
+        constructor(x, y, angle, color, isPierce) {
+            this.x = x; this.y = y; this.angle = angle; this.color = color; 
+            this.isPierce = isPierce; this.active = true;
         }
         update() {
             const rad = (this.angle - 90) * Math.PI / 180;
-            this.x += Math.cos(rad) * B_SPEED;
-            this.y += Math.sin(rad) * B_SPEED;
-            let c = Math.floor(this.x / WALL_SIZE), r = Math.floor(this.y / WALL_SIZE);
-            if(r >=0 && r < map.length && c >=0 && c < map[0].length && map[r][c] === 1) {
-                this.active = false;
-                for(let i=0; i<3; i++) particles.push(new Particle(this.x, this.y, "#aaa"));
-            }
+            this.x += Math.cos(rad) * B_SPEED; this.y += Math.sin(rad) * B_SPEED;
             if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
+            
+            let c = Math.floor(this.x/WALL_SIZE), r = Math.floor(this.y/WALL_SIZE);
+            if (map[r] && map[r][c] !== 0) {
+                if (map[r][c] === 2) { // 击中箱子
+                    map[r][c] = 0; this.active = false;
+                    if (Math.random() < 0.4) powerUps.push(new PowerUp(c*40+20, r*40+20, Math.random() > 0.5 ? 'spread' : 'pierce'));
+                } else if (map[r][c] === 1 && !this.isPierce) {
+                    this.active = false;
+                }
+            }
         }
         draw() {
-            ctx.fillStyle = this.color;
-            ctx.beginPath(); ctx.arc(this.x, this.y, B_SIZE, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = this.isPierce ? "#fbbf24" : this.color;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.isPierce ? 6 : 4, 0, Math.PI*2); ctx.fill();
         }
     }
 
+    // 初始化
     let p1 = new Tank(20, 20, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
     let p2 = new Tank(780, 580, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
-    let aiTanks = [], bullets = [];
+    let aiTanks = [], bullets = [], powerUps = [], particles = [];
+    const keys = {}; window.onkeydown = e => keys[e.code] = true; window.onkeyup = e => keys[e.code] = false;
 
-    function spawnAI(count) {
-        for(let i=0; i<count; i++) {
-            let row, col;
-            do {
-                row = Math.floor(Math.random() * map.length);
-                col = Math.floor(Math.random() * map[0].length);
-            } while (map[row][col] === 1 || (row < 2 && col < 2) || (row > 12 && col > 17));
-            aiTanks.push(new Tank(col * 40 + 20, row * 40 + 20, "#4ade80", {}, true));
-        }
+    // 随机生成箱子 (2=箱子)
+    for(let i=0; i<30; i++) {
+        let r = Math.floor(Math.random()*15), c = Math.floor(Math.random()*20);
+        if(map[r][c] === 0 && !(r<2 && c<2) && !(r>12 && c>17)) map[r][c] = 2;
     }
-    spawnAI(4);
 
-    // --- 核心修改逻辑：胜负判定 ---
-    function checkHit() {
-        bullets.forEach(b => {
-            if(!b.active) return;
-            [p1, p2, ...aiTanks].forEach(t => {
-                if(b.color !== t.color && Math.hypot(b.x - t.x, b.y - t.y) < TANK_SIZE/2 + B_SIZE) {
-                    b.active = false;
-                    t.getHit();
-                }
-            });
-        });
-
-        aiTanks = aiTanks.filter(t => t.hp > 0);
-        document.getElementById("aiCount").innerText = aiTanks.length;
-        if(aiTanks.length < 2 && !isGameOver) spawnAI(3);
-
-        // 这里是关键：谁先没血，就显示对方胜利
-        if(p1.hp <= 0 || p2.hp <= 0) {
-            isGameOver = true;
-            document.getElementById("ui").style.display = "block";
-            const msgH1 = document.getElementById("msg");
-            
-            if (p1.hp <= 0) {
-                msgH1.innerText = "玩家 2 (蓝色) 获胜！";
-                msgH1.style.color = "#60a5fa";
-            } else if (p2.hp <= 0) {
-                msgH1.innerText = "玩家 1 (红色) 获胜！";
-                msgH1.style.color = "#fb7185";
-            }
+    function spawnAI() {
+        if (aiTanks.length < 2) {
+            aiTanks.push(new Tank(400, 300, "#4ade80", {}, true));
+            document.getElementById("aiCount").innerText = aiTanks.length;
         }
     }
 
     function gameLoop() {
-        if(isGameOver) return;
-        ctx.fillStyle = "#020617"; ctx.fillRect(0,0,canvas.width, canvas.height);
-        ctx.fillStyle = "#334155";
-        for(let r=0; r<map.length; r++) {
-            for(let c=0; c<map[r].length; c++) {
-                if(map[r][c] === 1) ctx.fillRect(c*WALL_SIZE, r*WALL_SIZE, WALL_SIZE, WALL_SIZE);
+        if (isGameOver) return;
+        ctx.fillStyle = "#020617"; ctx.fillRect(0,0,800,600);
+
+        // 绘制地图
+        for(let r=0; r<15; r++) {
+            for(let c=0; c<20; c++) {
+                if(map[r][c] === 1) { ctx.fillStyle = "#334155"; ctx.fillRect(c*40, r*40, 40, 40); }
+                else if(map[r][c] === 2) new Box(c, r).draw();
             }
         }
-        p1.handleInput(); p2.handleInput();
-        aiTanks.forEach(t => t.handleInput());
-        bullets = bullets.filter(b => b.active);
-        bullets.forEach(b => { b.update(); b.draw(); });
-        particles = particles.filter(p => p.life > 0);
-        particles.forEach(p => { p.update(); p.draw(); });
-        checkHit();
-        p1.draw(); p2.draw();
-        aiTanks.forEach(t => t.draw());
+
+        // 道具检测
+        powerUps = powerUps.filter(p => {
+            p.draw();
+            [p1, p2].forEach(t => {
+                if(Math.hypot(t.x - p.x, t.y - p.y) < 25) { t.skill = p.type; t.updateSkillUI(); p.life = 0; }
+            });
+            return p.life-- > 0;
+        });
+
+        // 坦克逻辑
+        [p1, p2].forEach(t => {
+            let dx=0, dy=0;
+            if(keys[t.controls.up]){dy=-t.speed; t.angle=0} else if(keys[t.controls.down]){dy=t.speed; t.angle=180}
+            else if(keys[t.controls.left]){dx=-t.speed; t.angle=270} else if(keys[t.controls.right]){dx=t.speed; t.angle=90}
+            if(dx||dy) t.tryMove(dx,dy);
+            if(keys[t.controls.shoot]) t.shoot();
+            t.draw();
+        });
+
+        // AI 逻辑
+        aiTanks.forEach(t => {
+            if(Math.random()<0.02) t.angle = [0,90,180,270][Math.floor(Math.random()*4)];
+            let adx = Math.sin(t.angle*Math.PI/180)*1.5, ady = -Math.cos(t.angle*Math.PI/180)*1.5;
+            t.tryMove(adx, ady);
+            if(Math.random()<0.01) t.shoot();
+            t.draw();
+        });
+
+        // 子弹碰撞
+        bullets = bullets.filter(b => {
+            b.update(); b.draw();
+            [p1, p2, ...aiTanks].forEach(t => {
+                if(b.color !== t.color && Math.hypot(b.x - t.x, b.y - t.y) < 15 && Date.now() > t.invincibleUntil) {
+                    b.active = false;
+                    if(t.isAI) t.hp = 0; else { 
+                        t.hp--; t.invincibleUntil = Date.now() + 2000; t.freezeUntil = Date.now() + 500;
+                        document.getElementById(t===p1?"hp1":"hp2").innerText = t.hp;
+                    }
+                }
+            });
+            return b.active;
+        });
+
+        aiTanks = aiTanks.filter(t => t.hp > 0);
+        spawnAI();
+
+        if(p1.hp <= 0 || p2.hp <= 0) {
+            isGameOver = true;
+            document.getElementById("ui").style.display = "block";
+            document.getElementById("msg").innerText = p1.hp<=0 ? "玩家 2 胜利！" : "玩家 1 胜利！";
+        }
         requestAnimationFrame(gameLoop);
     }
     gameLoop();
