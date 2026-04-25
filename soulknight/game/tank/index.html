@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>元气坦克：2秒无敌闪烁版</title>
+    <title>元气坦克：双人对决修正版</title>
     <style>
         body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
@@ -12,7 +12,7 @@
         .p2 { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
         #container { position: relative; margin-top: 20px; }
         canvas { background-color: #000; border: 4px solid #334155; border-radius: 8px; }
-        #ui { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(30, 41, 59, 0.98); padding: 40px; border-radius: 24px; text-align: center; border: 2px solid #4ade80; z-index: 100; }
+        #ui { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(30, 41, 59, 0.98); padding: 40px; border-radius: 24px; text-align: center; border: 2px solid #4ade80; z-index: 100; box-shadow: 0 0 40px rgba(0,0,0,0.8); }
         button { background: #4ade80; color: #0b0f1a; border: none; padding: 12px 40px; font-size: 20px; border-radius: 12px; cursor: pointer; margin-top: 20px; font-weight: bold; }
     </style>
 </head>
@@ -21,7 +21,7 @@
 <div class="hud">
     <div class="hp-box p1">P1 (WASD): <span id="hp1">3</span> ❤️</div>
     <div class="hp-box p2">P2 (方向键): <span id="hp2">3</span> ❤️</div>
-    <div class="hp-box" style="color:#4ade80">当前敌军: <span id="aiCount">0</span></div>
+    <div class="hp-box" style="color:#4ade80">敌军 AI: <span id="aiCount">0</span></div>
 </div>
 
 <div id="container">
@@ -35,7 +35,6 @@
 <script>
     const canvas = document.getElementById("tankCanvas");
     const ctx = canvas.getContext("2d");
-    
     const TANK_SIZE = 26, B_SIZE = 4, B_SPEED = 7, WALL_SIZE = 40;
     let isGameOver = false;
 
@@ -96,8 +95,6 @@
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.rotate(this.angle * Math.PI / 180);
-            
-            // 无敌状态：亮白光并闪烁
             if (now < this.invincibleUntil) {
                 const isFlashOn = Math.floor(now / 100) % 2 === 0;
                 ctx.shadowBlur = 15;
@@ -106,7 +103,6 @@
             } else {
                 ctx.fillStyle = this.color;
             }
-            
             ctx.fillRect(-TANK_SIZE/2, -TANK_SIZE/2, TANK_SIZE, TANK_SIZE);
             ctx.fillStyle = "#fff";
             ctx.fillRect(-2, -TANK_SIZE/2 - 10, 4, 15);
@@ -164,13 +160,11 @@
 
         getHit() {
             if (Date.now() < this.invincibleUntil) return; 
-
             this.hp--;
             for(let i=0; i<20; i++) particles.push(new Particle(this.x, this.y, this.color));
-            
             if (!this.isAI) {
-                this.freezeUntil = Date.now() + 500;      // 停顿0.5秒
-                this.invincibleUntil = Date.now() + 2000; // 调整为2秒无敌
+                this.freezeUntil = Date.now() + 500;
+                this.invincibleUntil = Date.now() + 2000;
                 document.getElementById(this === p1 ? "hp1" : "hp2").innerText = Math.max(0, this.hp);
             } else {
                 this.hp = 0;
@@ -215,6 +209,7 @@
     }
     spawnAI(4);
 
+    // --- 核心修改逻辑：胜负判定 ---
     function checkHit() {
         bullets.forEach(b => {
             if(!b.active) return;
@@ -225,13 +220,24 @@
                 }
             });
         });
+
         aiTanks = aiTanks.filter(t => t.hp > 0);
         document.getElementById("aiCount").innerText = aiTanks.length;
         if(aiTanks.length < 2 && !isGameOver) spawnAI(3);
+
+        // 这里是关键：谁先没血，就显示对方胜利
         if(p1.hp <= 0 || p2.hp <= 0) {
             isGameOver = true;
             document.getElementById("ui").style.display = "block";
-            document.getElementById("msg").innerText = p1.hp <= 0 ? "蓝色胜出！" : "红色胜出！";
+            const msgH1 = document.getElementById("msg");
+            
+            if (p1.hp <= 0) {
+                msgH1.innerText = "玩家 2 (蓝色) 获胜！";
+                msgH1.style.color = "#60a5fa";
+            } else if (p2.hp <= 0) {
+                msgH1.innerText = "玩家 1 (红色) 获胜！";
+                msgH1.style.color = "#fb7185";
+            }
         }
     }
 
