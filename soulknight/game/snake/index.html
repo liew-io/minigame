@@ -9,14 +9,13 @@
         body { margin: 0; background-color: #0b0f1a; color: #fff; font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; overflow-x: hidden; touch-action: none; }
         .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; width: 100%; max-width: 1000px; }
         .game-box { display: flex; flex-direction: column; align-items: center; }
-        .stats { padding: 10px; font-size: 18px; font-weight: bold; color: #4ade80; text-align: center; }
+        .stats { padding: 10px; font-size: 16px; font-weight: bold; color: #4ade80; text-align: center; }
+        .user-info { font-size: 14px; color: #fbbf24; margin-bottom: 5px; }
         canvas { background-color: #000; border: 3px solid #334155; display: block; width: 320px; height: 320px; border-radius: 8px; box-shadow: 0 0 20px rgba(74, 222, 128, 0.2); }
         
-        /* 排行榜样式 */
         .leaderboard { width: 280px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .leaderboard h2 { margin: 0 0 15px 0; font-size: 20px; color: #fbbf24; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 10px; }
-        .rank-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #334155; font-size: 14px; transition: 0.3s; }
-        .rank-item:hover { background: rgba(255,255,255,0.05); }
+        .rank-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #334155; font-size: 14px; }
         .rank-name { color: #e2e8f0; font-weight: 500; }
         .rank-score { color: #4ade80; font-weight: bold; }
 
@@ -32,6 +31,7 @@
 
 <div class="container">
     <div class="game-box">
+        <div class="user-info">当前玩家: <span id="playerNameDisplay">未登录</span></div>
         <div class="stats">SCORE: <span id="score">0</span> | BEST: <span id="highScore">0</span></div>
         <canvas id="gameCanvas" width="400" height="400"></canvas>
         <div class="controls">
@@ -49,7 +49,7 @@
 </div>
 
 <script>
-    // 1. 初始化数据库客户端 (已填入你的凭证)
+    // 1. 初始化
     const SB_URL = 'https://zyltashytubjqqysjjyt.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5bHRhc2h5dHVianFxeXNqanl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMzk2NTksImV4cCI6MjA5MjcxNTY1OX0.Y7OlxY9H3wb99-F3K4cvrExxhXPNfKUtPj0t4pMCLuE';
     const dbClient = supabase.createClient(SB_URL, SB_KEY);
@@ -58,6 +58,21 @@
     const ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score");
     const highScoreEl = document.getElementById("highScore");
+    const nameDisplay = document.getElementById("playerNameDisplay");
+
+    // --- 玩家持久化逻辑 ---
+    let currentPlayerName = localStorage.getItem("snake_player_name");
+
+    function initUser() {
+        if (!currentPlayerName) {
+            currentPlayerName = prompt("欢迎来到元气蛇！请输入你的游戏昵称（输入后将永久使用）：", "新玩家");
+            if (!currentPlayerName || currentPlayerName.trim() === "") {
+                currentPlayerName = "匿名玩家" + Math.floor(Math.random() * 1000);
+            }
+            localStorage.setItem("snake_player_name", currentPlayerName);
+        }
+        nameDisplay.innerText = currentPlayerName;
+    }
 
     const gridSize = 20;
     const tileCount = 20;
@@ -67,15 +82,14 @@
     let localBest = localStorage.getItem("snake_max_score") || 0;
     highScoreEl.innerText = localBest;
 
-    // --- 排行榜核心逻辑 ---
+    // --- 数据库逻辑 ---
     async function fetchLeaderboard() {
         try {
-            const { data, error } = await dbClient
+            const { data } = await dbClient
                 .from('leaderboard')
                 .select('name, score')
                 .order('score', { ascending: false })
                 .limit(10);
-            
             if (data) {
                 document.getElementById("rankList").innerHTML = data.map((item, i) => `
                     <div class="rank-item">
@@ -84,40 +98,30 @@
                     </div>
                 `).join('');
             }
-        } catch (e) { console.error("加载排行榜失败"); }
+        } catch (e) { console.error(e); }
     }
 
     async function submitScore(finalScore) {
-        const playerName = prompt("游戏结束！输入名字上榜：", "匿名玩家");
-        if (!playerName) return;
-
+        // 直接使用已存的名字，不再弹出输入框
         try {
-            // 唯一玩家逻辑：先查该玩家是否已在榜单
             const { data: existingEntry } = await dbClient
                 .from('leaderboard')
                 .select('score')
-                .eq('name', playerName)
+                .eq('name', currentPlayerName)
                 .maybeSingle();
 
             if (existingEntry) {
-                // 如果已存在，且新分数更高，则更新记录
                 if (finalScore > existingEntry.score) {
-                    await dbClient
-                        .from('leaderboard')
-                        .update({ score: finalScore })
-                        .eq('name', playerName);
+                    await dbClient.from('leaderboard').update({ score: finalScore }).eq('name', currentPlayerName);
                 }
             } else {
-                // 如果是新玩家，直接插入
-                await dbClient
-                    .from('leaderboard')
-                    .insert([{ name: playerName, score: finalScore }]);
+                await dbClient.from('leaderboard').insert([{ name: currentPlayerName, score: finalScore }]);
             }
-            fetchLeaderboard(); // 提交后立即刷新
-        } catch (e) { console.error("分数提交出错"); }
+            fetchLeaderboard();
+        } catch (e) { console.error(e); }
     }
 
-    // --- 贪吃蛇游戏逻辑 ---
+    // --- 游戏核心 ---
     function setDir(dir) {
         if (dir === "UP" && currentDir !== "DOWN") nextDir = "UP";
         if (dir === "DOWN" && currentDir !== "UP") nextDir = "DOWN";
@@ -135,7 +139,6 @@
 
         const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-        // 碰撞边界或身体检测
         if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount || 
             snake.some((s, i) => i !== 0 && s.x === head.x && s.y === head.y)) {
             const finalScore = score;
@@ -158,37 +161,23 @@
     }
 
     function draw() {
-        // 画背景
-        ctx.fillStyle = "#000"; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // 画食物
-        ctx.fillStyle = "#fb7185"; 
-        ctx.beginPath(); 
-        ctx.roundRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4, 5); 
-        ctx.fill();
-
-        // 画蛇
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fb7185"; ctx.beginPath(); ctx.roundRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4, 5); ctx.fill();
         snake.forEach((part, i) => {
             ctx.fillStyle = i === 0 ? "#4ade80" : "#1e293b";
-            ctx.beginPath(); 
-            ctx.roundRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2, i === 0 ? 6 : 2); 
-            ctx.fill();
+            ctx.beginPath(); ctx.roundRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2, i === 0 ? 6 : 2); ctx.fill();
         });
     }
 
     function gameOver() {
-        score = 0; 
-        scoreEl.innerText = "0";
+        score = 0; scoreEl.innerText = "0";
         snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
-        nextDir = "UP"; 
-        currentDir = "UP";
+        nextDir = "UP"; currentDir = "UP";
         generateFood();
     }
 
     function generateFood() {
         food = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
-        // 确保食物不生成在蛇身上
         if (snake.some(s => s.x === food.x && s.y === food.y)) generateFood();
     }
 
@@ -201,7 +190,6 @@
         draw();
     }
 
-    // 键盘支持
     document.onkeydown = (e) => {
         if (e.key === "ArrowUp") setDir("UP");
         if (e.key === "ArrowDown") setDir("DOWN");
@@ -209,7 +197,8 @@
         if (e.key === "ArrowRight") setDir("RIGHT");
     };
 
-    // 初始化启动
+    // 启动顺序：初始化用户 -> 加载排行 -> 开始循环
+    initUser();
     generateFood();
     fetchLeaderboard();
     window.requestAnimationFrame(main);
