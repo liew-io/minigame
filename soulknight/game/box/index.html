@@ -2,143 +2,139 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>仓库管理员：50关逻辑阶梯</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>仓库管理员：手机/电脑全适配版</title>
     <style>
         :root {
             --bg-color: #0f172a;
-            --cell-size: 50px;
+            --cell-size: 45px;
             --wall-color: #334155;
             --box-color: #d97706;
             --target-color: #3b82f6;
             --win-color: #22c55e;
-            --dead-color: #ef4444;
+            --btn-bg: #1e293b;
         }
 
-        body { margin: 0; background: var(--bg-color); color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
-        
-        /* 顶部导航 */
-        .header { width: 100%; padding: 15px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; z-index: 10; }
-        .btn-ui { background: #6366f1; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-ui:hover { background: #4f46e5; transform: scale(1.05); }
+        body { 
+            margin: 0; background: var(--bg-color); color: #fff; 
+            font-family: system-ui, -apple-system; 
+            display: flex; flex-direction: column; align-items: center; 
+            min-height: 100vh; overflow: hidden; touch-action: manipulation;
+        }
 
-        /* 关卡菜单 */
-        #level-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 200; display: flex; flex-direction: column; align-items: center; padding-top: 40px; overflow-y: auto; }
-        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 20px; }
-        .level-item { width: 55px; height: 55px; background: #1e293b; border: 2px solid #334155; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .level-item.locked { opacity: 0.3; cursor: not-allowed; }
-        .level-item.unlocked { border-color: #60a5fa; color: #60a5fa; }
-        .level-item.completed { background: #064e3b; border-color: #22c55e; }
+        /* 顶部信息栏 */
+        .header { 
+            width: 100%; padding: 10px; display: flex; justify-content: space-around; 
+            align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; 
+        }
 
         /* 游戏主体 */
-        #game-container { position: relative; margin-top: 20px; border: 5px solid #1e293b; background: #1e293b; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        #game-container { 
+            position: relative; margin-top: 15px; border: 4px solid #1e293b; 
+            border-radius: 8px; background: #1e293b; overflow: hidden;
+        }
         .row { display: flex; }
-        .cell { width: var(--cell-size); height: var(--cell-size); display: flex; align-items: center; justify-content: center; font-size: 30px; position: relative; }
-        .wall { background-color: var(--wall-color); border-radius: 4px; box-shadow: inset 0 0 10px #000; border: 1px solid #475569; }
+        .cell { width: var(--cell-size); height: var(--cell-size); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
+        .wall { background-color: var(--wall-color); border-radius: 4px; box-shadow: inset 0 0 8px #000; }
         .target { background: radial-gradient(circle, var(--target-color) 25%, transparent 30%); }
-        .box { background: var(--box-color); border-radius: 8px; z-index: 2; border: 2px solid #92400e; transition: all 0.1s; }
+        .box { background: var(--box-color); border-radius: 6px; border: 2px solid #92400e; z-index: 2; }
         .box-on-target { background: var(--win-color); border-color: #166534; }
-        .box-dead { background: var(--dead-color) !important; animation: shake 0.5s infinite; }
+        /* 死局高亮提示 */
+        .box-dead { border: 2px solid #ef4444 !important; box-shadow: 0 0 10px #ef4444; }
 
-        @keyframes shake { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.9); } }
+        /* 手机虚拟按键区域 */
+        .controls-mobile { 
+            margin-top: auto; padding: 20px 0; width: 100%; 
+            display: grid; grid-template-columns: repeat(3, 80px); 
+            grid-template-rows: repeat(2, 65px); gap: 10px; justify-content: center;
+        }
+        .btn-move { 
+            background: var(--btn-bg); color: white; border: 1px solid #334155; 
+            border-radius: 12px; font-size: 24px; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 4px 0 #0f172a;
+        }
+        .btn-move:active { transform: translateY(2px); box-shadow: 0 2px 0 #0f172a; background: #334155; }
         
-        #overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
-        .hint { margin-top: 15px; color: #4b5563; font-size: 13px; font-family: monospace; }
-        kbd { background: #334155; padding: 2px 6px; border-radius: 4px; color: #fff; }
+        .func-btns { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn-small { background: #334155; padding: 8px 15px; border-radius: 6px; font-size: 14px; border: none; color: white; }
+
+        /* 遮罩层 */
+        #overlay { 
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(15, 23, 42, 0.95); flex-direction: column; 
+            align-items: center; justify-content: center; z-index: 100; 
+        }
+
+        /* 关卡菜单 */
+        #level-menu { 
+            position: fixed; inset: 0; background: var(--bg-color); 
+            z-index: 200; display: none; flex-direction: column; align-items: center; padding: 20px;
+        }
+        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; overflow-y: auto; }
+        .level-item { width: 50px; height: 50px; background: #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .level-item.unlocked { color: #60a5fa; border: 1px solid #60a5fa; }
     </style>
 </head>
 <body>
 
-<div id="level-menu">
-    <h1 style="color: #60a5fa; letter-spacing: 2px;">难度阶梯：1 - 50</h1>
-    <div class="level-grid" id="level-grid"></div>
-</div>
-
 <div class="header">
-    <button class="btn-ui" onclick="showMenu()">📋 菜单</button>
-    <div style="font-size: 18px;">第 <span id="level-display">1</span> 关</div>
-    <div style="color: #94a3b8;">步数: <b id="steps-display" style="color:#fff">0</b></div>
+    <button class="btn-small" onclick="toggleMenu()">菜单</button>
+    <div style="font-weight: bold;">第 <span id="lv-num">1</span> 关</div>
+    <div style="font-size: 14px; color: #94a3b8;">步数: <span id="steps">0</span></div>
 </div>
 
 <div id="game-container">
     <div id="grid"></div>
     <div id="overlay">
-        <h2 style="color: #4ade80; font-size: 28px; margin: 0;">逻辑大师！</h2>
-        <button class="btn-ui" style="padding: 12px 30px; margin-top: 15px;" onclick="nextLevel()">下一关</button>
-        <p style="color: #94a3b8; font-size: 14px;">按 <kbd>Enter</kbd> 继续</p>
+        <h2 style="color: #4ade80">通关成功!</h2>
+        <button class="btn-move" style="width: 150px; height: 50px; font-size: 18px;" onclick="nextLevel()">下一关</button>
+        <p style="color: #64748b; font-size: 12px; margin-top: 10px;">点击或按 Enter 继续</p>
     </div>
 </div>
 
-<div class="hint">
-    <kbd>WASD</kbd> 移动 | <kbd>Z</kbd> 撤销步数 | <kbd>R</kbd> 重置关卡
+<div class="func-btns">
+    <button class="btn-small" onclick="undo()">⬅️ 撤销 (Z)</button>
+    <button class="btn-small" onclick="reset()">🔄 重置 (R)</button>
+</div>
+
+<div class="controls-mobile">
+    <div></div>
+    <div class="btn-move" onclick="move(-1, 0)">▲</div>
+    <div></div>
+    <div class="btn-move" onclick="move(0, -1)">◀</div>
+    <div class="btn-move" onclick="move(1, 0)">▼</div>
+    <div class="btn-move" onclick="move(0, 1)">▶</div>
+</div>
+
+<div id="level-menu">
+    <h2>选择关卡</h2>
+    <div class="level-grid" id="level-grid"></div>
+    <button class="btn-small" style="margin-top: 20px;" onclick="toggleMenu()">返回游戏</button>
 </div>
 
 <script>
-    // 地图元素枚举
     const T = { EMPTY: 0, WALL: 1, GOAL: 2, BOX: 3, PLAYER: 4, BOX_ON_GOAL: 5, PLAYER_ON_GOAL: 6 };
-
-    // 核心关卡模板库（手动定义的5个难度梯度锚点）
-    const levelTemplates = [
-        // 1. 入门级 (1-10关使用)
-        [[1,1,1,1,1],[1,4,0,2,1],[1,0,3,0,1],[1,1,1,1,1]],
-        // 2. 进阶级 (11-20关使用)
-        [[1,1,1,1,1,1],[1,2,0,0,1,1],[1,0,3,3,2,1],[1,0,4,0,0,1],[1,1,1,1,1,1]],
-        // 3. 挑战级 (21-30关使用 - 窄路设计)
-        [[0,1,1,1,1,0],[1,1,0,0,1,1],[1,2,3,0,0,1],[1,1,3,2,1,1],[0,1,4,0,1,0],[0,1,1,1,1,0]],
-        // 4. 困难级 (31-40关使用 - 空间极度压缩)
-        [[1,1,1,1,1,1,1],[1,0,2,0,0,2,1],[1,0,3,3,3,0,1],[1,1,0,4,0,1,1],[1,2,0,0,0,2,1],[1,1,1,1,1,1,1]],
-        // 5. 地狱级 (41-50关使用 - 经典Sokoban逻辑锁)
-        [[0,1,1,1,1,1,0],[1,1,0,0,0,1,1],[1,0,3,1,3,0,1],[1,2,3,4,3,2,1],[1,0,3,1,3,0,1],[1,1,2,0,2,1,1],[0,1,1,1,1,1,0]]
+    
+    // 这里预设几种难度梯度（由于代码长度限制，展示5个难度骨架，循环生成50关）
+    const levelsBase = [
+        [[1,1,1,1,1],[1,4,0,2,1],[1,0,3,0,1],[1,1,1,1,1]], // 基础
+        [[1,1,1,1,1,1],[1,2,0,0,1,1],[1,0,3,3,2,1],[1,0,4,0,0,1],[1,1,1,1,1,1]], // 双箱
+        [[0,1,1,1,1,0],[1,1,0,0,1,1],[1,2,3,0,0,1],[1,1,3,2,1,1],[0,1,4,0,1,0],[0,1,1,1,1,0]], // 绕路
+        [[1,1,1,1,1,1,1],[1,0,2,0,0,2,1],[1,0,3,3,3,0,1],[1,1,0,4,0,1,1],[1,2,0,0,0,2,1],[1,1,1,1,1,1,1]], // 密集
+        [[1,1,1,1,1,1,1,1],[1,2,2,0,0,2,2,1],[1,0,3,3,3,3,0,1],[1,1,0,0,4,0,1,1],[1,1,1,1,1,1,1,1]] // 终极
     ];
 
-    // 生成50个渐进关卡
-    const allLevels = [];
-    for(let i=0; i<50; i++) {
-        let templateIdx = Math.floor(i / 10);
-        allLevels.push(JSON.parse(JSON.stringify(levelTemplates[templateIdx])));
-    }
-
-    let currentIdx = 0;
-    let map = [];
-    let history = [];
-    let steps = 0;
-    let isWin = false;
-    let unlocked = parseInt(localStorage.getItem('sokoban_master_val')) || 1;
-
-    function showMenu() {
-        const grid = document.getElementById('level-grid');
-        grid.innerHTML = '';
-        for(let i=0; i<50; i++) {
-            const item = document.createElement('div');
-            item.className = `level-item ${i+1 <= unlocked ? 'unlocked' : 'locked'} ${i+1 < unlocked ? 'completed' : ''}`;
-            item.innerText = i + 1;
-            if(i+1 <= unlocked) item.onclick = () => startLevel(i);
-            grid.appendChild(item);
-        }
-        document.getElementById('level-menu').style.display = 'flex';
-    }
-
-    function startLevel(idx) {
-        currentIdx = idx;
-        map = JSON.parse(JSON.stringify(allLevels[idx]));
-        steps = 0;
-        history = [];
-        isWin = false;
-        document.getElementById('level-menu').style.display = 'none';
-        document.getElementById('overlay').style.display = 'none';
-        
-        // 动态调整UI尺寸
-        const maxW = map[0].length;
-        const size = maxW > 10 ? 35 : (maxW > 7 ? 45 : 55);
-        document.documentElement.style.setProperty('--cell-size', size + 'px');
-        
-        render();
-    }
+    const allLevels = Array.from({length: 50}, (_, i) => levelsBase[Math.floor(i/10)]);
+    
+    let curIdx = 0, map = [], history = [], steps = 0, isWin = false;
+    let unlocked = parseInt(localStorage.getItem('soko_mobile_unlocked')) || 1;
 
     function render() {
         const grid = document.getElementById('grid');
         grid.innerHTML = '';
-        document.getElementById('level-display').innerText = currentIdx + 1;
-        document.getElementById('steps-display').innerText = steps;
+        document.getElementById('lv-num').innerText = curIdx + 1;
+        document.getElementById('steps').innerText = steps;
 
         map.forEach((row, r) => {
             const rowDiv = document.createElement('div');
@@ -152,14 +148,13 @@
                     const b = document.createElement('div');
                     b.className = 'cell box' + (cell === T.BOX_ON_GOAL ? ' box-on-target' : '');
                     b.innerText = '📦';
-                    // 动态检测死局逻辑
-                    if(cell === T.BOX && isDead(r, c)) b.classList.add('box-dead');
+                    // 核心逻辑：如果在非目标的墙角，显示死局红色
+                    if(cell === T.BOX && isDeadPos(r, c)) b.classList.add('box-dead');
                     div.appendChild(b);
                 }
                 if([T.PLAYER, T.PLAYER_ON_GOAL].includes(cell)) {
                     const p = document.createElement('div');
-                    p.className = 'cell';
-                    p.innerText = '👤';
+                    p.className = 'cell'; p.innerText = '👤';
                     div.appendChild(p);
                 }
                 rowDiv.appendChild(div);
@@ -168,62 +163,89 @@
         });
     }
 
-    // 静态死局判定
-    function isDead(r, c) {
-        const u = map[r-1][c] === T.WALL;
-        const d = map[r+1][c] === T.WALL;
-        const l = map[r][c-1] === T.WALL;
-        const r_ = map[r][c+1] === T.WALL;
-        // 如果箱子在非目标的墙角，判定为死局
-        return ((u || d) && (l || r_));
+    function isDeadPos(r, c) {
+        const u = map[r-1][c] === T.WALL, d = map[r+1][c] === T.WALL;
+        const l = map[r][c-1] === T.WALL, rt = map[r][c+1] === T.WALL;
+        return ((u || d) && (l || rt));
     }
 
     function move(dr, dc) {
         if(isWin) return;
         let pr, pc;
         map.forEach((row, r) => row.forEach((v, c) => { if([T.PLAYER, T.PLAYER_ON_GOAL].includes(v)) { pr=r; pc=c; } }));
-        
-        const nr = pr+dr, nc = pc+dc;
-        const target = map[nr][nc];
+        const nr = pr+dr, nc = pc+dc, target = map[nr][nc];
         const snap = JSON.stringify(map);
 
         if(target === T.EMPTY || target === T.GOAL) {
-            map[pr][pc] = map[pr][pc] === T.PLAYER_ON_GOAL ? T.GOAL : T.EMPTY;
-            map[nr][nc] = target === T.GOAL ? T.PLAYER_ON_GOAL : T.PLAYER;
+            updatePos(pr, pc, nr, nc, target);
             history.push(snap); steps++;
         } else if(target === T.BOX || target === T.BOX_ON_GOAL) {
             const nnr = nr+dr, nnc = nc+dc;
             if(map[nnr][nnc] === T.EMPTY || map[nnr][nnc] === T.GOAL) {
                 map[nnr][nnc] = map[nnr][nnc] === T.GOAL ? T.BOX_ON_GOAL : T.BOX;
-                map[nr][nc] = target === T.BOX_ON_GOAL ? T.PLAYER_ON_GOAL : T.PLAYER;
-                map[pr][pc] = map[pr][pc] === T.PLAYER_ON_GOAL ? T.GOAL : T.EMPTY;
+                updatePos(pr, pc, nr, nc, target === T.BOX_ON_GOAL ? T.GOAL : T.EMPTY);
                 history.push(snap); steps++;
             }
         }
-        render();
+        render(); checkWin();
+    }
+
+    function updatePos(r, c, nr, nc, targetType) {
+        map[r][c] = map[r][c] === T.PLAYER_ON_GOAL ? T.GOAL : T.EMPTY;
+        map[nr][nc] = (targetType === T.GOAL || targetType === T.BOX_ON_GOAL) ? T.PLAYER_ON_GOAL : T.PLAYER;
+    }
+
+    function checkWin() {
         if(!map.some(row => row.includes(T.BOX))) {
             isWin = true;
-            if(currentIdx+1 === unlocked && unlocked < 50) {
-                unlocked++; localStorage.setItem('sokoban_master_val', unlocked);
+            if(curIdx+1 === unlocked && unlocked < 50) {
+                unlocked++; localStorage.setItem('soko_mobile_unlocked', unlocked);
             }
             setTimeout(() => document.getElementById('overlay').style.display='flex', 200);
         }
     }
 
-    function nextLevel() { if(currentIdx < 49) startLevel(currentIdx+1); else showMenu(); }
+    function startLevel(i) {
+        curIdx = i; map = JSON.parse(JSON.stringify(allLevels[i]));
+        steps = 0; history = []; isWin = false;
+        document.getElementById('level-menu').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
+        render();
+    }
+
+    function toggleMenu() {
+        const m = document.getElementById('level-menu');
+        if(m.style.display === 'flex') m.style.display = 'none';
+        else {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = '';
+            for(let i=0; i<50; i++) {
+                const item = document.createElement('div');
+                item.className = `level-item ${i+1 <= unlocked ? 'unlocked' : ''}`;
+                item.innerText = i+1;
+                if(i+1 <= unlocked) item.onclick = () => startLevel(i);
+                grid.appendChild(item);
+            }
+            m.style.display = 'flex';
+        }
+    }
+
+    function undo() { if(history.length > 0) { map = JSON.parse(history.pop()); steps--; render(); } }
+    function reset() { startLevel(curIdx); }
+    function nextLevel() { if(curIdx < 49) startLevel(curIdx+1); }
 
     window.onkeydown = e => {
         const k = e.key.toUpperCase();
         if(k === 'ENTER' && isWin) nextLevel();
-        if(['W', 'ARROWUP'].includes(k)) move(-1, 0);
-        if(['S', 'ARROWDOWN'].includes(k)) move(1, 0);
-        if(['A', 'ARROWLEFT'].includes(k)) move(0, -1);
-        if(['D', 'ARROWRIGHT'].includes(k)) move(0, 1);
-        if(k === 'Z' && history.length > 0) { map = JSON.parse(history.pop()); steps--; render(); }
-        if(k === 'R') startLevel(currentIdx);
+        if(k === 'W' || k === 'ARROWUP') move(-1, 0);
+        if(k === 'S' || k === 'ARROWDOWN') move(1, 0);
+        if(k === 'A' || k === 'ARROWLEFT') move(0, -1);
+        if(k === 'D' || k === 'ARROWRIGHT') move(0, 1);
+        if(k === 'Z') undo();
+        if(k === 'R') reset();
     };
 
-    showMenu();
+    startLevel(0);
 </script>
 </body>
 </html>
