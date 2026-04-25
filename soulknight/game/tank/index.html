@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元气坦克：双人对决</title>
+    <style>
+        body { margin: 0; background-color: #1a1a1a; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .game-header { margin-bottom: 10px; display: flex; gap: 50px; font-weight: bold; }
+        .p1-hp { color: #fb7185; } .p2-hp { color: #60a5fa; }
+        
+        #game-container { position: relative; border: 4px solid #334155; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        canvas { background-color: #000; display: block; }
+
+        /* 结算 UI */
+        #settlementUI {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(30, 41, 59, 0.95); padding: 30px; border-radius: 20px;
+            text-align: center; border: 2px solid #4ade80; z-index: 100; min-width: 200px;
+        }
+        .restart-btn { 
+            background: #4ade80; color: #0b0f1a; border: none; padding: 10px 25px; 
+            font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-header">
+    <div class="p1-hp">玩家 1 (WASD): <span id="hp1">3</span> ❤️</div>
+    <div class="p2-hp">玩家 2 (方向键): <span id="hp2">3</span> ❤️</div>
+</div>
+
+<div id="game-container">
+    <canvas id="tankCanvas" width="600" height="400"></canvas>
+    
+    <div id="settlementUI">
+        <h1 id="winnerMsg" style="color: #fbbf24;">胜利者!</h1>
+        <button class="restart-btn" onclick="resetGame()">重新开战</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById("tankCanvas");
+    const ctx = canvas.getContext("2d");
+    const hp1El = document.getElementById("hp1");
+    const hp2El = document.getElementById("hp2");
+    const ui = document.getElementById("settlementUI");
+
+    // 游戏配置
+    const TANK_SIZE = 30;
+    const BULLET_SIZE = 5;
+    const BULLET_SPEED = 7;
+    let isGameOver = false;
+
+    // 键盘状态
+    const keys = {};
+    window.addEventListener("keydown", e => keys[e.code] = true);
+    window.addEventListener("keyup", e => keys[e.code] = false);
+
+    // 坦克类
+    class Tank {
+        constructor(x, y, color, controls) {
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.angle = 0; // 0:上, 90:右, 180:下, 270:左
+            this.hp = 3;
+            this.speed = 3;
+            this.controls = controls;
+            this.lastShoot = 0;
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle * Math.PI / 180);
+            
+            // 画坦克主体
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-TANK_SIZE/2, -TANK_SIZE/2, TANK_SIZE, TANK_SIZE);
+            // 画炮管
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(-2, -TANK_SIZE/2 - 10, 4, 15);
+            ctx.restore();
+        }
+
+        move() {
+            if (keys[this.controls.up]) {
+                this.y -= this.speed;
+                this.angle = 0;
+            } else if (keys[this.controls.down]) {
+                this.y += this.speed;
+                this.angle = 180;
+            } else if (keys[this.controls.left]) {
+                this.x -= this.speed;
+                this.angle = 270;
+            } else if (keys[this.controls.right]) {
+                this.x += this.speed;
+                this.angle = 90;
+            }
+
+            // 边界检测
+            this.x = Math.max(TANK_SIZE/2, Math.min(canvas.width - TANK_SIZE/2, this.x));
+            this.y = Math.max(TANK_SIZE/2, Math.min(canvas.height - TANK_SIZE/2, this.y));
+
+            // 发射检测
+            if (keys[this.controls.shoot] && Date.now() - this.lastShoot > 500) {
+                this.shoot();
+                this.lastShoot = Date.now();
+            }
+        }
+
+        shoot() {
+            bullets.push(new Bullet(this.x, this.y, this.angle, this.color));
+        }
+    }
+
+    // 炮弹类
+    class Bullet {
+        constructor(x, y, angle, color) {
+            this.x = x;
+            this.y = y;
+            this.angle = angle;
+            this.color = color;
+            this.active = true;
+        }
+
+        update() {
+            const rad = (this.angle - 90) * Math.PI / 180;
+            this.x += Math.cos(rad) * BULLET_SPEED;
+            this.y += Math.sin(rad) * BULLET_SPEED;
+
+            // 墙壁碰撞
+            if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                this.active = false;
+            }
+        }
+
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, BULLET_SIZE, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // 初始化玩家
+    let p1 = new Tank(300, 50, "#fb7185", { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", shoot: "Space" });
+    let p2 = new Tank(300, 350, "#60a5fa", { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", shoot: "Enter" });
+    p1.angle = 180; // P1 初始向下
+    let bullets = [];
+
+    function resetGame() {
+        p1 = new Tank(300, 50, "#fb7185", { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", shoot: "Space" });
+        p1.angle = 180;
+        p2 = new Tank(300, 350, "#60a5fa", { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", shoot: "Enter" });
+        bullets = [];
+        isGameOver = false;
+        ui.style.display = "none";
+        hp1El.innerText = 3;
+        hp2El.innerText = 3;
+        requestAnimationFrame(gameLoop);
+    }
+
+    function checkCollision() {
+        bullets.forEach(b => {
+            if (!b.active) return;
+            
+            // 检查子弹是否击中 P1
+            if (b.color !== p1.color) {
+                let dist = Math.hypot(b.x - p1.x, b.y - p1.y);
+                if (dist < TANK_SIZE/2 + BULLET_SIZE) {
+                    p1.hp--;
+                    hp1El.innerText = p1.hp;
+                    b.active = false;
+                }
+            }
+
+            // 检查子弹是否击中 P2
+            if (b.color !== p2.color) {
+                let dist = Math.hypot(b.x - p2.x, b.y - p2.y);
+                if (dist < TANK_SIZE/2 + BULLET_SIZE) {
+                    p2.hp--;
+                    hp2El.innerText = p2.hp;
+                    b.active = false;
+                }
+            }
+        });
+
+        // 胜负判定
+        if (p1.hp <= 0 || p2.hp <= 0) {
+            isGameOver = true;
+            ui.style.display = "block";
+            document.getElementById("winnerMsg").innerText = p1.hp <= 0 ? "玩家 2 胜利！" : "玩家 1 胜利！";
+        }
+    }
+
+    function gameLoop() {
+        if (isGameOver) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 更新状态
+        p1.move();
+        p2.move();
+        bullets = bullets.filter(b => b.active);
+        bullets.forEach(b => b.update());
+
+        checkCollision();
+
+        // 绘制
+        p1.draw();
+        p2.draw();
+        bullets.forEach(b => b.draw());
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+</script>
+</body>
+</html>
