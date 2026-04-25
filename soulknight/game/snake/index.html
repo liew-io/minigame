@@ -49,11 +49,12 @@
 </div>
 
 <script>
-    // --- 【这里填入你的 Supabase 信息】 ---
-    const SUPABASE_URL = 'https://zyltashytubjqqysjjyt.supabase.co/rest/v1/';
+ // --- 【修正后的配置】 ---
+    const SUPABASE_URL = 'https://zyltashytubjqqysjjyt.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5bHRhc2h5dHVianFxeXNqanl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMzk2NTksImV4cCI6MjA5MjcxNTY1OX0.Y7OlxY9H3wb99-F3K4cvrExxhXPNfKUtPj0t4pMCLuE';
-    const supabase = lib.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+    
+    // 注意：这里变量名要和全局对象名错开，或者直接使用全局 supabase 对象
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score");
