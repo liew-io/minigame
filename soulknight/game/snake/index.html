@@ -1,222 +1,273 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>元气蛇：终极丝滑版</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: #0b0f1a;
-            color: #fff;
-            font-family: -apple-system, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            overflow: hidden;
-            touch-action: none; /* 核心：防止手机端误触缩放或滚动 */
-        }
-        .stats {
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #4ade80;
-            text-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
-        }
-        canvas {
-            background-color: #000;
-            border: 3px solid #334155;
-            display: block;
-            width: 340px; /* 适配大部分手机屏幕 */
-            height: 340px;
-            image-rendering: pixelated; /* 保持像素感 */
-        }
-        .controls {
-            display: grid;
-            grid-template-areas: 
-                ". up ."
-                "left down right";
-            gap: 12px;
-            margin-top: 20px;
-        }
-        .btn {
-            width: 75px;
-            height: 75px;
-            background: #1e293b;
-            border: 2px solid #475569;
-            border-radius: 15px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 30px;
-            color: #94a3b8;
-            /* 关键：使用 pointer 事件减少延迟 */
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .btn:active {
-            background: #334155;
-            border-color: #4ade80;
-            color: #4ade80;
-            transform: scale(0.92);
-        }
-        .up { grid-area: up; }
-        .left { grid-area: left; }
-        .right { grid-area: right; }
-        .down { grid-area: down; }
-        
-        @media (min-width: 768px) {
-            .controls { display: none; }
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>元气蛇：竞技版 V2.2</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0b0f1a;
+            color: #fff;
+            font-family: -apple-system, "Helvetica Neue", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden;
+            touch-action: none;
+        }
+
+        /* 响应式布局：大屏并排，小屏垂直 */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* 左侧：游戏区 */
+        .game-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stats {
+            padding: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4ade80;
+            text-align: center;
+        }
+
+        canvas {
+            background-color: #000;
+            border: 3px solid #334155;
+            display: block;
+            width: 320px;
+            height: 320px;
+            border-radius: 8px;
+            image-rendering: pixelated;
+        }
+
+        /* 右侧：排行榜区 */
+        .leaderboard {
+            width: 280px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .leaderboard h2 {
+            margin-top: 0;
+            font-size: 20px;
+            color: #fbbf24;
+            text-align: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+        }
+
+        .rank-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #334155;
+            font-size: 15px;
+        }
+
+        .rank-name { color: #e2e8f0; }
+        .rank-score { color: #4ade80; font-weight: bold; }
+        .my-score-highlight { background: rgba(74, 222, 128, 0.1); border-radius: 4px; padding: 5px; margin-top: 10px; border: 1px solid #4ade80; }
+
+        /* 虚拟按键 */
+        .controls {
+            display: grid;
+            grid-template-areas: ". up ." "left down right";
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            width: 70px; height: 70px; background: #1e293b; border: 2px solid #475569; border-radius: 15px;
+            display: flex; justify-content: center; align-items: center; font-size: 30px; color: #94a3b8; user-select: none;
+        }
+
+        .btn:active { background: #334155; border-color: #4ade80; color: #4ade80; transform: scale(0.92); }
+        .up { grid-area: up; } .left { grid-area: left; } .right { grid-area: right; } .down { grid-area: down; }
+
+        @media (max-width: 650px) {
+            .container { flex-direction: column; align-items: center; }
+            .leaderboard { width: 320px; }
+        }
+    </style>
 </head>
 <body>
 
- <div class="stats">V2.1 | SCORE: <span id="score">0</span> | SPEED: <span id="speed">1</span></div>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
+<div class="container">
+    <div class="game-box">
+        <div class="stats">
+            得分: <span id="score">0</span> | 
+            最高: <span id="highScore">0</span>
+        </div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
 
-    <div class="controls">
-        <div class="btn up" onpointerdown="setDir('UP')">▲</div>
-        <div class="btn left" onpointerdown="setDir('LEFT')">◀</div>
-        <div class="btn right" onpointerdown="setDir('RIGHT')">▶</div>
-        <div class="btn down" onpointerdown="setDir('DOWN')">▼</div>
-    </div>
+        <div class="controls">
+            <div class="btn up" onpointerdown="setDir('UP')">▲</div>
+            <div class="btn left" onpointerdown="setDir('LEFT')">◀</div>
+            <div class="btn right" onpointerdown="setDir('RIGHT')">▶</div>
+            <div class="btn down" onpointerdown="setDir('DOWN')">▼</div>
+        </div>
+    </div>
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const scoreEl = document.getElementById("score");
-        const speedEl = document.getElementById("speed");
+    <div class="leaderboard">
+        <h2>🏆 英雄榜</h2>
+        <div id="rankList">
+            <div class="rank-item"><span>1. Liew (开发者)</span> <span class="rank-score">100</span></div>
+            <div class="rank-item"><span>2. Player_Pro</span> <span class="rank-score">45</span></div>
+            <div class="rank-item"><span>3. Snake_King</span> <span class="rank-score">32</span></div>
+        </div>
+        
+        <div class="my-score-highlight">
+            <div style="font-size: 12px; color: #94a3b8;">我的历史最高记录:</div>
+            <div style="font-size: 18px; color: #4ade80; font-weight: bold; text-align: center;">
+                <span id="myBest">0</span>
+            </div>
+        </div>
+        <p style="font-size: 10px; color: #64748b; text-align: center; margin-top: 15px;">
+            (排行榜每局结束后自动更新本地记录)
+        </p>
+    </div>
+</div>
 
-        const gridSize = 20;
-        const tileCount = 20;
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score");
+    const highScoreEl = document.getElementById("highScore");
+    const myBestEl = document.getElementById("myBest");
 
-        let snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
-        let food = {x: 5, y: 5};
-        
-        let currentDir = "UP"; // 蛇当前真正在移动的方向
-        let nextDir = "UP";    // 玩家指令缓存（下一帧生效）
-        
-        let score = 0;
-        let lastRenderTime = 0;
-        let baseSpeed = 7; // 初始每秒移动 7 格
+    const gridSize = 20;
+    const tileCount = 20;
 
-        function main(currentTime) {
-            window.requestAnimationFrame(main);
-            
-            // 计算动态速度：每得 2 分，速度增加 1，最高 22
-            const currentSpeed = Math.min(22, baseSpeed + Math.floor(score / 2));
-            speedEl.innerText = Math.floor(currentSpeed - 6);
+    let snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
+    let food = {x: 5, y: 5};
+    let currentDir = "UP";
+    let nextDir = "UP";
+    let score = 0;
+    let lastRenderTime = 0;
+    let baseSpeed = 7;
 
-            const secondsSinceLastRender = (currentTime - lastRenderTime) / 1000;
-            if (secondsSinceLastRender < 1 / currentSpeed) return;
+    // --- 本地分数逻辑 ---
+    let localBest = localStorage.getItem("snake_max_score") || 0;
+    highScoreEl.innerText = localBest;
+    myBestEl.innerText = localBest;
 
-            lastRenderTime = currentTime;
-            update();
-            draw();
-        }
-
-        // 核心逻辑：防止反向自杀的方向控制
-      function setDir(dir) {
-    // 检查是否按下了反方向
-    const isOpposite = 
-        (dir === "UP" && currentDir === "DOWN") ||
-        (dir === "DOWN" && currentDir === "UP") ||
-        (dir === "LEFT" && currentDir === "RIGHT") ||
-        (dir === "RIGHT" && currentDir === "LEFT");
-
-    if (isOpposite) {
-        // 【核心黑科技】：如果按了反方向，把蛇的身体倒过来！
-        snake.reverse(); 
-        // 重新确定现在的真实方向
-        nextDir = dir;
-        currentDir = dir; 
-    } else {
-        // 正常的 90 度转弯
-        nextDir = dir;
+    function main(currentTime) {
+        window.requestAnimationFrame(main);
+        const currentSpeed = Math.min(22, baseSpeed + Math.floor(score / 2));
+        const secondsSinceLastRender = (currentTime - lastRenderTime) / 1000;
+        if (secondsSinceLastRender < 1 / currentSpeed) return;
+        lastRenderTime = currentTime;
+        update();
+        draw();
     }
-}
 
-        function update() {
-            // 在更新逻辑时，正式确认方向
-            currentDir = nextDir;
+    function setDir(dir) {
+        const isOpposite = 
+            (dir === "UP" && currentDir === "DOWN") ||
+            (dir === "DOWN" && currentDir === "UP") ||
+            (dir === "LEFT" && currentDir === "RIGHT") ||
+            (dir === "RIGHT" && currentDir === "LEFT");
 
-            let dx = 0, dy = 0;
-            if (currentDir === "UP") dy = -1;
-            if (currentDir === "DOWN") dy = 1;
-            if (currentDir === "LEFT") dx = -1;
-            if (currentDir === "RIGHT") dx = 1;
+        if (isOpposite) {
+            snake.reverse(); 
+            nextDir = dir;
+            currentDir = dir; 
+        } else {
+            nextDir = dir;
+        }
+    }
 
-            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+    function update() {
+        currentDir = nextDir;
+        let dx = 0, dy = 0;
+        if (currentDir === "UP") dy = -1;
+        if (currentDir === "DOWN") dy = 1;
+        if (currentDir === "LEFT") dx = -1;
+        if (currentDir === "RIGHT") dx = 1;
 
-            // 死亡检测：撞墙或撞自己
-            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount || 
-                snake.some((s, index) => index !== 0 && s.x === head.x && s.y === head.y)) {
-                alert("游戏结束！得分: " + score);
-                resetGame();
-                return;
-            }
+        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-            snake.unshift(head);
+        if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount || 
+            snake.some((s, index) => index !== 0 && s.x === head.x && s.y === head.y)) {
+            gameOver();
+            return;
+        }
 
-            // 吃到食物
-            if (head.x === food.x && head.y === food.y) {
-                score++;
-                scoreEl.innerText = score;
-                generateFood();
-            } else {
-                snake.pop();
-            }
-        }
+        snake.unshift(head);
 
-        function generateFood() {
-            food = {
-                x: Math.floor(Math.random() * tileCount),
-                y: Math.floor(Math.random() * tileCount)
-            };
-            // 防止食物刷在蛇身上
-            if (snake.some(s => s.x === food.x && s.y === food.y)) generateFood();
-        }
+        if (head.x === food.x && head.y === food.y) {
+            score++;
+            scoreEl.innerText = score;
+            // 实时检查是否破纪录
+            if (score > localBest) {
+                localBest = score;
+                localStorage.setItem("snake_max_score", localBest);
+                highScoreEl.innerText = localBest;
+                myBestEl.innerText = localBest;
+            }
+            generateFood();
+        } else {
+            snake.pop();
+        }
+    }
 
-        function draw() {
-            // 背景
-            ctx.fillStyle = "#000";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function generateFood() {
+        food = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount)
+        };
+        if (snake.some(s => s.x === food.x && s.y === food.y)) generateFood();
+    }
 
-            // 食物
-            ctx.fillStyle = "#fb7185";
-            ctx.fillRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4);
+    function draw() {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fb7185";
+        ctx.fillRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4);
+        snake.forEach((part, index) => {
+            ctx.fillStyle = index === 0 ? "#4ade80" : "#1e293b";
+            ctx.fillRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2);
+        });
+    }
 
-            // 蛇
-            snake.forEach((part, index) => {
-                ctx.fillStyle = index === 0 ? "#4ade80" : "#1e293b";
-                // 蛇身稍微留一点缝隙，看起来更有节段感
-                ctx.fillRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2);
-            });
-        }
+    function gameOver() {
+        alert("GAME OVER! 得分: " + score);
+        score = 0;
+        scoreEl.innerText = "0";
+        snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
+        nextDir = "UP";
+        currentDir = "UP";
+        generateFood();
+    }
 
-        function resetGame() {
-            snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
-            nextDir = "UP";
-            currentDir = "UP";
-            score = 0;
-            scoreEl.innerText = "0";
-            generateFood();
-        }
+    document.addEventListener("keydown", e => {
+        switch(e.key) {
+            case "ArrowUp": setDir("UP"); break;
+            case "ArrowDown": setDir("DOWN"); break;
+            case "ArrowLeft": setDir("LEFT"); break;
+            case "ArrowRight": setDir("RIGHT"); break;
+        }
+    });
 
-        // 键盘监听
-        document.addEventListener("keydown", e => {
-            switch(e.key) {
-                case "ArrowUp": setDir("UP"); break;
-                case "ArrowDown": setDir("DOWN"); break;
-                case "ArrowLeft": setDir("LEFT"); break;
-                case "ArrowRight": setDir("RIGHT"); break;
-            }
-        });
-
-        // 启动
-        generateFood();
-        window.requestAnimationFrame(main);
-    </script>
+    generateFood();
+    window.requestAnimationFrame(main);
+</script>
 </body>
 </html>
