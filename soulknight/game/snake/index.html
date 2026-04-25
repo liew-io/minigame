@@ -6,34 +6,64 @@
     <title>元气蛇：全服竞技版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; background-color: #0b0f1a; color: #fff; font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; overflow-x: hidden; touch-action: none; }
-        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; width: 100%; max-width: 1000px; }
-        .game-box { display: flex; flex-direction: column; align-items: center; }
-        .stats { padding: 10px; font-size: 16px; font-weight: bold; color: #4ade80; text-align: center; }
-        .user-info { font-size: 14px; color: #fbbf24; margin-bottom: 5px; background: rgba(251, 191, 36, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(251, 191, 36, 0.3); }
-        canvas { background-color: #000; border: 3px solid #334155; display: block; width: 320px; height: 320px; border-radius: 8px; box-shadow: 0 0 20px rgba(74, 222, 128, 0.2); }
+        :root { --bg-color: #0b0f1a; --card-bg: #1e293b; --accent: #4ade80; --danger: #fb7185; }
+        body { margin: 0; background-color: var(--bg-color); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; touch-action: none; overflow: hidden; }
         
-        .leaderboard { width: 280px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        .leaderboard h2 { margin: 0 0 15px 0; font-size: 20px; color: #fbbf24; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 10px; }
-        .rank-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #334155; font-size: 14px; }
-        .rank-name { color: #e2e8f0; font-weight: 500; }
-        .rank-score { color: #4ade80; font-weight: bold; }
+        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; width: 100%; max-width: 1000px; position: relative; }
+        
+        /* 游戏区域 */
+        .game-box { display: flex; flex-direction: column; align-items: center; position: relative; }
+        .user-info { font-size: 14px; color: #fbbf24; margin-bottom: 8px; padding: 4px 15px; background: rgba(251, 191, 36, 0.1); border-radius: 20px; border: 1px solid rgba(251, 191, 36, 0.3); }
+        .stats { padding: 10px; font-size: 18px; font-weight: bold; color: var(--accent); }
+        canvas { background-color: #000; border: 3px solid #334155; border-radius: 12px; display: block; width: 320px; height: 320px; box-shadow: 0 0 30px rgba(74, 222, 128, 0.1); }
 
-        .controls { display: grid; grid-template-areas: ". up ." "left down right"; gap: 12px; margin-top: 20px; }
-        .btn { width: 70px; height: 70px; background: #1e293b; border: 2px solid #475569; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: #94a3b8; user-select: none; -webkit-tap-highlight-color: transparent; }
-        .btn:active { background: #4ade80; color: #000; transform: scale(0.9); }
-        .up { grid-area: up; } .left { grid-area: left; } .right { grid-area: right; } .down { grid-area: down; }
+        /* 死亡结算 UI 🎨 */
+        #gameOverUI {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 260px; background: rgba(30, 41, 59, 0.95); padding: 30px; border-radius: 24px;
+            border: 2px solid var(--accent); text-align: center; z-index: 100;
+            backdrop-filter: blur(10px); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        #gameOverUI h1 { color: var(--danger); margin: 0; font-size: 28px; letter-spacing: 2px; }
+        #gameOverUI p { font-size: 16px; margin: 15px 0; color: #94a3b8; }
+        #gameOverUI .big-score { font-size: 40px; display: block; color: var(--accent); margin: 10px 0; font-weight: 800; }
+        .restart-btn { 
+            background: var(--accent); color: #0b0f1a; border: none; padding: 12px 40px; 
+            font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer;
+            transition: all 0.2s; width: 100%; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.3);
+        }
+        .restart-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 222, 128, 0.4); }
+
+        /* 排行榜 */
+        .leaderboard { width: 280px; background: var(--card-bg); border-radius: 16px; padding: 20px; border: 1px solid #334155; }
+        .leaderboard h2 { margin: 0 0 15px 0; font-size: 18px; color: #fbbf24; text-align: center; }
+        .rank-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
         
-        @media (max-width: 650px) { .container { flex-direction: column; align-items: center; } .leaderboard { width: 320px; } }
+        /* 控制器 */
+        .controls { display: grid; grid-template-areas: ". up ." "left down right"; gap: 15px; margin-top: 20px; }
+        .btn { width: 65px; height: 65px; background: var(--card-bg); border: 1px solid #475569; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #94a3b8; cursor: pointer; }
+        .btn:active { background: var(--accent); color: #000; }
+        .up { grid-area: up; } .left { grid-area: left; } .right { grid-area: right; } .down { grid-area: down; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="game-box">
-        <div class="user-info">当前玩家: <span id="playerNameDisplay">加载中...</span></div>
+        <div class="user-info">玩家: <span id="playerNameDisplay">...</span></div>
         <div class="stats">SCORE: <span id="score">0</span> | BEST: <span id="highScore">0</span></div>
+        
         <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+        <div id="gameOverUI">
+            <h1>GAME OVER</h1>
+            <p>本次得分</p>
+            <span id="finalScore" class="big-score">0</span>
+            <button class="restart-btn" onclick="restartGame()">再来一局</button>
+        </div>
+
         <div class="controls">
             <div class="btn up" onpointerdown="setDir('UP')">▲</div>
             <div class="btn left" onpointerdown="setDir('LEFT')">◀</div>
@@ -44,12 +74,12 @@
 
     <div class="leaderboard">
         <h2>🏆 全服英雄榜</h2>
-        <div id="rankList">努力加载中...</div>
+        <div id="rankList">加载中...</div>
     </div>
 </div>
 
 <script>
-    // --- 1. 数据库初始化 ---
+    // 1. 初始化 Supabase
     const SB_URL = 'https://zyltashytubjqqysjjyt.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5bHRhc2h5dHVianFxeXNqanl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMzk2NTksImV4cCI6MjA5MjcxNTY1OX0.Y7OlxY9H3wb99-F3K4cvrExxhXPNfKUtPj0t4pMCLuE';
     const dbClient = supabase.createClient(SB_URL, SB_KEY);
@@ -59,76 +89,57 @@
     const scoreEl = document.getElementById("score");
     const highScoreEl = document.getElementById("highScore");
     const nameDisplay = document.getElementById("playerNameDisplay");
+    const gameOverUI = document.getElementById("gameOverUI");
 
-    // --- 2. 玩家与本地存储逻辑 ---
     let currentPlayerName = localStorage.getItem("snake_player_name");
     let localBest = parseInt(localStorage.getItem("snake_max_score")) || 0;
+    let isGameOver = false; // 💡 控制状态
     highScoreEl.innerText = localBest;
 
     function initUser() {
         if (!currentPlayerName) {
-            let name = prompt("欢迎！请起一个永久使用的游戏昵称：", "勇者");
-            currentPlayerName = (name && name.trim() !== "") ? name : "匿名玩家" + Math.floor(Math.random() * 1000);
+            let name = prompt("起一个永久使用的名字：", "玩家" + Math.floor(Math.random()*999));
+            currentPlayerName = name ? name.trim() : "匿名玩家";
             localStorage.setItem("snake_player_name", currentPlayerName);
         }
         nameDisplay.innerText = currentPlayerName;
     }
 
-    // --- 3. 排行榜交互 ---
+    // 2. 数据库同步
     async function fetchLeaderboard() {
-        try {
-            const { data } = await dbClient
-                .from('leaderboard')
-                .select('name, score')
-                .order('score', { ascending: false })
-                .limit(10);
-            
-            if (data) {
-                document.getElementById("rankList").innerHTML = data.map((item, i) => `
-                    <div class="rank-item">
-                        <span class="rank-name">${i+1}. ${item.name}</span>
-                        <span class="rank-score">${item.score}</span>
-                    </div>
-                `).join('');
-            }
-        } catch (e) { console.error("获取排行失败", e); }
+        const { data } = await dbClient.from('leaderboard').select('name, score').order('score', { ascending: false }).limit(10);
+        if (data) {
+            document.getElementById("rankList").innerHTML = data.map((item, i) => `
+                <div class="rank-item">
+                    <span>${i+1}. ${item.name}</span>
+                    <span class="rank-score">${item.score}</span>
+                </div>`).join('');
+        }
     }
 
-    async function syncScores(finalScore) {
-        // 更新本地最高分显示
-        if (finalScore > localBest) {
-            localBest = finalScore;
+    async function syncScores(score) {
+        if (score > localBest) {
+            localBest = score;
             localStorage.setItem("snake_max_score", localBest);
             highScoreEl.innerText = localBest;
         }
-
         try {
-            // 使用 upsert：如果名字存在则更新，不存在则插入
-            // 注意：这需要数据库有 UPDATE 权限，或者使用复杂的判断逻辑
-            const { data: existing } = await dbClient
-                .from('leaderboard')
-                .select('score')
-                .eq('name', currentPlayerName)
-                .maybeSingle();
-
+            const { data: existing } = await dbClient.from('leaderboard').select('score').eq('name', currentPlayerName).maybeSingle();
             if (existing) {
-                if (finalScore > existing.score) {
-                    await dbClient.from('leaderboard').update({ score: finalScore }).eq('name', currentPlayerName);
-                }
+                if (score > existing.score) await dbClient.from('leaderboard').update({ score }).eq('name', currentPlayerName);
             } else {
-                await dbClient.from('leaderboard').insert([{ name: currentPlayerName, score: finalScore }]);
+                await dbClient.from('leaderboard').insert([{ name: currentPlayerName, score }]);
             }
-            fetchLeaderboard();
-        } catch (e) { console.error("数据同步失败", e); }
+            setTimeout(fetchLeaderboard, 500);
+        } catch (e) { console.error(e); }
     }
 
-    // --- 4. 游戏核心逻辑 ---
+    // 3. 游戏核心
     const gridSize = 20, tileCount = 20;
-    let snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
-    let food = {x: 5, y: 5};
-    let currentDir = "UP", nextDir = "UP", score = 0, lastRenderTime = 0;
+    let snake = [{x: 10, y: 10}], food = {x: 5, y: 5}, currentDir = "UP", nextDir = "UP", score = 0, lastTime = 0;
 
     function setDir(dir) {
+        if (isGameOver) return;
         if (dir === "UP" && currentDir !== "DOWN") nextDir = "UP";
         if (dir === "DOWN" && currentDir !== "UP") nextDir = "DOWN";
         if (dir === "LEFT" && currentDir !== "RIGHT") nextDir = "LEFT";
@@ -136,58 +147,54 @@
     }
 
     function update() {
+        if (isGameOver) return; // 💡 死亡时停止更新
+        
         currentDir = nextDir;
         let dx = 0, dy = 0;
-        if (currentDir === "UP") dy = -1; 
-        else if (currentDir === "DOWN") dy = 1; 
-        else if (currentDir === "LEFT") dx = -1; 
-        else if (currentDir === "RIGHT") dx = 1;
+        if (currentDir === "UP") dy = -1; else if (currentDir === "DOWN") dy = 1;
+        else if (currentDir === "LEFT") dx = -1; else if (currentDir === "RIGHT") dx = 1;
 
         const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-        // 死亡判定
         if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount || 
-            snake.some((s, i) => i !== 0 && s.x === head.x && s.y === head.y)) {
-            syncScores(score); // 触发同步
-            resetGame();
+            snake.some(s => s.x === head.x && s.y === head.y)) {
+            triggerGameOver();
             return;
         }
 
         snake.unshift(head);
         if (head.x === food.x && head.y === food.y) {
-            score++;
-            scoreEl.innerText = score;
-            generateFood();
+            score++; scoreEl.innerText = score;
+            food = { x: Math.floor(Math.random()*tileCount), y: Math.floor(Math.random()*tileCount) };
         } else { snake.pop(); }
     }
 
-    function draw() {
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#fb7185"; ctx.beginPath(); ctx.roundRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4, 5); ctx.fill();
-        snake.forEach((part, i) => {
-            ctx.fillStyle = i === 0 ? "#4ade80" : "#1e293b";
-            ctx.beginPath(); ctx.roundRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2, i === 0 ? 6 : 2); ctx.fill();
-        });
+    function triggerGameOver() {
+        isGameOver = true;
+        document.getElementById("finalScore").innerText = score;
+        gameOverUI.style.display = "block";
+        syncScores(score);
     }
 
-    function resetGame() {
+    function restartGame() {
         score = 0; scoreEl.innerText = "0";
-        snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
-        nextDir = "UP"; currentDir = "UP";
-        generateFood();
+        snake = [{x: 10, y: 10}]; nextDir = "UP"; currentDir = "UP";
+        isGameOver = false;
+        gameOverUI.style.display = "none";
     }
 
-    function generateFood() {
-        food = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
-        if (snake.some(s => s.x === food.x && s.y === food.y)) generateFood();
+    function draw() {
+        ctx.fillStyle = "#000"; ctx.fillRect(0,0,400,400);
+        ctx.fillStyle = "#fb7185"; ctx.fillRect(food.x*20+2, food.y*20+2, 16, 16);
+        ctx.fillStyle = "#4ade80";
+        snake.forEach(p => ctx.fillRect(p.x*20+1, p.y*20+1, 18, 18));
     }
 
-    function main(currentTime) {
+    function main(t) {
         window.requestAnimationFrame(main);
-        const speed = 7 + Math.floor(score / 3);
-        if ((currentTime - lastRenderTime) / 1000 < 1 / speed) return;
-        lastRenderTime = currentTime;
-        update();
+        if ((t - lastTime) < 160) return;
+        lastTime = t; 
+        update(); 
         draw();
     }
 
@@ -198,11 +205,7 @@
         if (e.key === "ArrowRight") setDir("RIGHT");
     };
 
-    // --- 5. 启动 ---
-    initUser();
-    generateFood();
-    fetchLeaderboard();
-    window.requestAnimationFrame(main);
+    initUser(); fetchLeaderboard(); main(0);
 </script>
 </body>
 </html>
