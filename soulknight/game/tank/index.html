@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>元气坦克：30秒争夺与碰撞版</title>
+    <title>元气坦克：AI分散生成版</title>
     <style>
         body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
@@ -51,6 +51,24 @@
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     ];
 
+    // 获取地图随机空坐标函数 (用于箱子和AI生成)
+    function getRandomEmptyPos(minDistFromPlayers = 150) {
+        let r, c, x, y;
+        for(let i=0; i<100; i++) {
+            r = Math.floor(Math.random()*15);
+            c = Math.floor(Math.random()*20);
+            x = c * 40 + 20;
+            y = r * 40 + 20;
+            if(map[r][c] === 0) {
+                // 确保距离玩家有一定距离，防止出生杀
+                const d1 = Math.hypot(x - p1.x, y - p1.y);
+                const d2 = Math.hypot(x - p2.x, y - p2.y);
+                if(d1 > minDistFromPlayers && d2 > minDistFromPlayers) return {x, y, r, c};
+            }
+        }
+        return {x: 400, y: 300}; // 保底
+    }
+
     class Particle {
         constructor(x, y, color) {
             this.x = x; this.y = y;
@@ -74,9 +92,9 @@
     class Tank {
         constructor(x, y, color, controls, isAI = false) {
             this.x = x; this.y = y; this.color = color;
-            this.angle = 180; this.hp = 3; this.speed = 2.4;
+            this.angle = isAI ? 0 : 180; this.hp = 3; this.speed = 2.4;
             this.controls = controls; this.isAI = isAI;
-            this.skill = null; // 'spread' or 'pierce'
+            this.skill = null; 
             this.lastShoot = 0; this.freezeUntil = 0; this.invincibleUntil = 0;
             this.aiDirTimer = 0; this.aiKey = "";
         }
@@ -96,13 +114,13 @@
             if (this.isAI) {
                 if (Date.now() > this.aiDirTimer) {
                     this.aiKey = ["W","A","S","D"][Math.floor(Math.random()*4)];
-                    this.aiDirTimer = Date.now() + 1000 + Math.random()*1000;
+                    this.aiDirTimer = Date.now() + 800 + Math.random()*1200;
                 }
                 let dx=0, dy=0;
                 if(this.aiKey==="W"){dy=-1.8; this.angle=0} else if(this.aiKey==="S"){dy=1.8; this.angle=180}
                 else if(this.aiKey==="A"){dx=-1.8; this.angle=270} else if(this.aiKey==="D"){dx=1.8; this.angle=90}
                 if(!this.tryMove(dx, dy)) this.aiDirTimer = 0;
-                if(Math.random() < 0.02) this.shoot();
+                if(Math.random() < 0.015) this.shoot();
             } else {
                 let dx=0, dy=0;
                 if (keys[this.controls.up]) { dy=-this.speed; this.angle=0 }
@@ -117,14 +135,12 @@
         tryMove(dx, dy) {
             let nx = this.x + dx, ny = this.y + dy;
             let half = TANK_SIZE/2 - 1;
-            // 1. 地图与墙壁碰撞
             let corners = [{x:nx-half, y:ny-half}, {x:nx+half, y:ny-half}, {x:nx-half, y:ny+half}, {x:nx+half, y:ny+half}];
             for (let p of corners) {
                 if (p.x < 10 || p.x > canvas.width-10 || p.y < 10 || p.y > canvas.height-10) return false;
                 let c = Math.floor(p.x/WALL_SIZE), r = Math.floor(p.y/WALL_SIZE);
                 if (map[r] && map[r][c] !== 0) return false;
             }
-            // 2. 坦克间物理碰撞
             let all = [p1, p2, ...aiTanks];
             for (let t of all) {
                 if (t !== this && Math.hypot(nx - t.x, ny - t.y) < TANK_SIZE) return false;
@@ -133,7 +149,7 @@
         }
 
         shoot() {
-            if (Date.now() - this.lastShoot < 800) return;
+            if (Date.now() - this.lastShoot < 850) return;
             const isP = this.skill === 'pierce';
             if (this.skill === 'spread') {
                 for (let a of [-20, 0, 20]) bullets.push(new Bullet(this.x, this.y, this.angle+a, this.color, false));
@@ -161,7 +177,7 @@
             
             let c = Math.floor(this.x/WALL_SIZE), r = Math.floor(this.y/WALL_SIZE);
             if (map[r] && map[r][c] !== 0) {
-                if (map[r][c] === 2) { // 击中箱子
+                if (map[r][c] === 2) { 
                     map[r][c] = 0; this.active = false;
                     powerUps.push(new PowerUp(c*40+20, r*40+20, Math.random() > 0.5 ? 'spread' : 'pierce'));
                     for(let i=0; i<15; i++) particles.push(new Particle(this.x, this.y, "#d97706"));
@@ -177,23 +193,29 @@
         }
     }
 
+    // --- 初始化 ---
+    // 玩家 1: 放在左上角 (40, 40)
     let p1 = new Tank(40, 40, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
+    // 玩家 2: 放在右下角
     let p2 = new Tank(760, 560, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
+    
     let aiTanks = [], bullets = [], powerUps = [], particles = [];
     const keys = {}; window.onkeydown = e => keys[e.code] = true; window.onkeyup = e => keys[e.code] = false;
 
-    function spawnBox() {
-        let r, c;
-        for(let i=0; i<50; i++) {
-            r = Math.floor(Math.random()*15); c = Math.floor(Math.random()*20);
-            if(map[r][c] === 0 && Math.hypot(p1.x - c*40, p1.y - r*40) > 100) { map[r][c] = 2; break; }
-        }
+    // 初始生成 3 个随机位置的 AI
+    for(let i=0; i<3; i++) {
+        let pos = getRandomEmptyPos();
+        aiTanks.push(new Tank(pos.x, pos.y, "#4ade80", {}, true));
     }
 
     setInterval(() => {
         if (isGameOver) return;
         boxTime--;
-        if (boxTime <= 0) { spawnBox(); boxTime = 30; }
+        if (boxTime <= 0) { 
+            let pos = getRandomEmptyPos(50); // 箱子可以离玩家近一点
+            map[pos.r][pos.c] = 2; 
+            boxTime = 30; 
+        }
         document.getElementById("boxTimer").innerText = boxTime;
     }, 1000);
 
@@ -201,7 +223,6 @@
         if(isGameOver) return;
         ctx.fillStyle = "#020617"; ctx.fillRect(0,0,800,600);
 
-        // 绘制地图与箱子
         for(let r=0; r<15; r++) {
             for(let c=0; c<20; c++) {
                 if(map[r][c] === 1) { ctx.fillStyle = "#334155"; ctx.fillRect(c*40, r*40, 40, 40); }
@@ -212,7 +233,6 @@
             }
         }
 
-        // 道具捡取
         powerUps = powerUps.filter(p => {
             p.draw();
             [p1, p2].forEach(t => {
@@ -221,20 +241,20 @@
             return p.active;
         });
 
-        // 坦克逻辑
         p1.handleInput(); p2.handleInput();
         aiTanks.forEach(t => t.handleInput());
         p1.draw(); p2.draw();
         aiTanks.forEach(t => t.draw());
 
-        // 子弹碰撞
         bullets = bullets.filter(b => {
             b.update(); b.draw();
             [p1, p2, ...aiTanks].forEach(t => {
                 if(b.active && b.color !== t.color && Math.hypot(b.x - t.x, b.y - t.y) < 18 && Date.now() > t.invincibleUntil) {
                     b.active = false;
-                    if(t.isAI) { t.hp = 0; for(let i=0; i<20; i++) particles.push(new Particle(t.x, t.y, t.color)); }
-                    else {
+                    if(t.isAI) { 
+                        t.hp = 0; 
+                        for(let i=0; i<20; i++) particles.push(new Particle(t.x, t.y, t.color)); 
+                    } else {
                         t.hp--; t.invincibleUntil = Date.now() + 2000; t.freezeUntil = Date.now() + 500;
                         document.getElementById(t===p1?"hp1":"hp2").innerText = Math.max(0, t.hp);
                         for(let i=0; i<15; i++) particles.push(new Particle(t.x, t.y, t.color));
@@ -247,8 +267,12 @@
         particles = particles.filter(p => p.life > 0);
         particles.forEach(p => { p.update(); p.draw(); });
 
+        // AI 维持数量：如果少于 3 个，每隔一段时间补充一个随机位置的 AI
+        if(aiTanks.length < 3 && Math.random() < 0.005) {
+            let pos = getRandomEmptyPos();
+            aiTanks.push(new Tank(pos.x, pos.y, "#4ade80", {}, true));
+        }
         aiTanks = aiTanks.filter(t => t.hp > 0);
-        if(aiTanks.length < 2) aiTanks.push(new Tank(400, 300, "#4ade80", {}, true));
 
         if(p1.hp <= 0 || p2.hp <= 0) {
             isGameOver = true;
