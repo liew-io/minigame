@@ -3,220 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>元气坦克：双人对决</title>
+    <title>元气坦克：大战略版</title>
     <style>
-        body { margin: 0; background-color: #1a1a1a; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .game-header { margin-bottom: 10px; display: flex; gap: 50px; font-weight: bold; }
-        .p1-hp { color: #fb7185; } .p2-hp { color: #60a5fa; }
-        
-        #game-container { position: relative; border: 4px solid #334155; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        canvas { background-color: #000; display: block; }
-
-        /* 结算 UI */
-        #settlementUI {
-            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(30, 41, 59, 0.95); padding: 30px; border-radius: 20px;
-            text-align: center; border: 2px solid #4ade80; z-index: 100; min-width: 200px;
-        }
-        .restart-btn { 
-            background: #4ade80; color: #0b0f1a; border: none; padding: 10px 25px; 
-            font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 15px;
-        }
+        body { margin: 0; background-color: #0f172a; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
+        .hp-box { padding: 5px 15px; border-radius: 10px; font-weight: bold; border: 1px solid rgba(255,255,255,0.1); }
+        .p1 { background: rgba(251, 113, 133, 0.2); color: #fb7185; }
+        .p2 { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
+        #container { position: relative; margin-top: 20px; }
+        canvas { background-color: #000; border: 4px solid #334155; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #ui { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(30, 41, 59, 0.95); padding: 30px; border-radius: 20px; text-align: center; border: 2px solid #4ade80; }
+        button { background: #4ade80; color: #0b0f1a; border: none; padding: 10px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="game-header">
-    <div class="p1-hp">玩家 1 (WASD): <span id="hp1">3</span> ❤️</div>
-    <div class="p2-hp">玩家 2 (方向键): <span id="hp2">3</span> ❤️</div>
+<div class="hud">
+    <div class="hp-box p1">P1 (红): <span id="hp1">3</span> ❤️</div>
+    <div class="hp-box p2">P2 (蓝): <span id="hp2">3</span> ❤️</div>
+    <div class="hp-box" style="color:#fbbf24">敌军 AI: 随机干扰</div>
 </div>
 
-<div id="game-container">
-    <canvas id="tankCanvas" width="600" height="400"></canvas>
-    
-    <div id="settlementUI">
-        <h1 id="winnerMsg" style="color: #fbbf24;">胜利者!</h1>
-        <button class="restart-btn" onclick="resetGame()">重新开战</button>
+<div id="container">
+    <canvas id="tankCanvas" width="800" height="600"></canvas>
+    <div id="ui">
+        <h1 id="msg" style="color: #fbbf24;">游戏结束</h1>
+        <button onclick="location.reload()">重新开战</button>
     </div>
 </div>
 
 <script>
     const canvas = document.getElementById("tankCanvas");
     const ctx = canvas.getContext("2d");
-    const hp1El = document.getElementById("hp1");
-    const hp2El = document.getElementById("hp2");
-    const ui = document.getElementById("settlementUI");
-
-    // 游戏配置
-    const TANK_SIZE = 30;
-    const BULLET_SIZE = 5;
-    const BULLET_SPEED = 7;
+    const SIZE = 30, B_SIZE = 5, B_SPEED = 6, WALL_SIZE = 40;
     let isGameOver = false;
 
-    // 键盘状态
-    const keys = {};
-    window.addEventListener("keydown", e => keys[e.code] = true);
-    window.addEventListener("keyup", e => keys[e.code] = false);
+    // 1. 地图配置 (1代表墙壁)
+    const map = [
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0],
+        [0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0],
+        [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0],
+        [0,0,1,1,0,1,1,0,0,0,0,0,0,1,1,0,1,1,0,0],
+        [0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0],
+        [0,1,1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,1,0],
+        [0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0],
+        [0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0],
+        [0,0,0,0,1,1,0,0,1,1,1,1,0,0,1,1,0,0,0,0],
+        [0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0],
+        [0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0],
+        [0,0,0,0,0,1,1,0,1,1,1,1,0,1,1,0,0,0,0,0],
+        [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    ];
 
-    // 坦克类
+    const keys = {};
+    window.onkeydown = e => keys[e.code] = true;
+    window.onkeyup = e => keys[e.code] = false;
+
     class Tank {
-        constructor(x, y, color, controls) {
-            this.x = x;
-            this.y = y;
-            this.color = color;
-            this.angle = 0; // 0:上, 90:右, 180:下, 270:左
-            this.hp = 3;
-            this.speed = 3;
-            this.controls = controls;
-            this.lastShoot = 0;
+        constructor(x, y, color, controls, isAI = false) {
+            this.x = x; this.y = y; this.color = color;
+            this.angle = 0; this.hp = 3; this.speed = 2.5;
+            this.controls = controls; this.lastShoot = 0;
+            this.isAI = isAI;
+            this.aiDirTimer = 0;
+            this.aiCurrentKey = "";
         }
 
         draw() {
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.rotate(this.angle * Math.PI / 180);
-            
-            // 画坦克主体
             ctx.fillStyle = this.color;
-            ctx.fillRect(-TANK_SIZE/2, -TANK_SIZE/2, TANK_SIZE, TANK_SIZE);
-            // 画炮管
+            ctx.fillRect(-SIZE/2, -SIZE/2, SIZE, SIZE);
             ctx.fillStyle = "#fff";
-            ctx.fillRect(-2, -TANK_SIZE/2 - 10, 4, 15);
+            ctx.fillRect(-2, -SIZE/2 - 8, 4, 12);
             ctx.restore();
         }
 
-        move() {
-            if (keys[this.controls.up]) {
-                this.y -= this.speed;
-                this.angle = 0;
-            } else if (keys[this.controls.down]) {
-                this.y += this.speed;
-                this.angle = 180;
-            } else if (keys[this.controls.left]) {
-                this.x -= this.speed;
-                this.angle = 270;
-            } else if (keys[this.controls.right]) {
-                this.x += this.speed;
-                this.angle = 90;
+        handleInput() {
+            if(this.isAI) {
+                this.updateAI();
+            } else {
+                let dx = 0, dy = 0;
+                if (keys[this.controls.up]) { dy = -this.speed; this.angle = 0; }
+                else if (keys[this.controls.down]) { dy = this.speed; this.angle = 180; }
+                else if (keys[this.controls.left]) { dx = -this.speed; this.angle = 270; }
+                else if (keys[this.controls.right]) { dx = this.speed; this.angle = 90; }
+                
+                if(dx !== 0 || dy !== 0) this.tryMove(dx, dy);
+                if (keys[this.controls.shoot] && Date.now() - this.lastShoot > 800) this.shoot();
             }
+        }
 
+        updateAI() {
+            if(Date.now() > this.aiDirTimer) {
+                const dirs = ["W","A","S","D"];
+                this.aiCurrentKey = dirs[Math.floor(Math.random()*dirs.length)];
+                this.aiDirTimer = Date.now() + 1000 + Math.random()*2000;
+            }
+            let dx = 0, dy = 0;
+            if(this.aiCurrentKey === "W") { dy = -this.speed/1.5; this.angle = 0; }
+            else if(this.aiCurrentKey === "S") { dy = this.speed/1.5; this.angle = 180; }
+            else if(this.aiCurrentKey === "A") { dx = -this.speed/1.5; this.angle = 270; }
+            else if(this.aiCurrentKey === "D") { dx = this.speed/1.5; this.angle = 90; }
+            
+            if(!this.tryMove(dx, dy)) this.aiDirTimer = 0; // 撞墙立即换向
+            if(Math.random() < 0.02) this.shoot(); // 随机开火
+        }
+
+        tryMove(dx, dy) {
+            let nextX = this.x + dx;
+            let nextY = this.y + dy;
+            
+            // 碰撞墙壁检测
+            let col = Math.floor(nextX / WALL_SIZE);
+            let row = Math.floor(nextY / WALL_SIZE);
+            
+            if(row >=0 && row < map.length && col >=0 && col < map[0].length) {
+                if(map[row][col] === 1) return false;
+            }
+            
             // 边界检测
-            this.x = Math.max(TANK_SIZE/2, Math.min(canvas.width - TANK_SIZE/2, this.x));
-            this.y = Math.max(TANK_SIZE/2, Math.min(canvas.height - TANK_SIZE/2, this.y));
-
-            // 发射检测
-            if (keys[this.controls.shoot] && Date.now() - this.lastShoot > 500) {
-                this.shoot();
-                this.lastShoot = Date.now();
-            }
+            if(nextX < SIZE/2 || nextX > canvas.width - SIZE/2 || nextY < SIZE/2 || nextY > canvas.height - SIZE/2) return false;
+            
+            this.x = nextX; this.y = nextY;
+            return true;
         }
 
         shoot() {
+            if(Date.now() - this.lastShoot < 1000) return;
             bullets.push(new Bullet(this.x, this.y, this.angle, this.color));
+            this.lastShoot = Date.now();
         }
     }
 
-    // 炮弹类
     class Bullet {
         constructor(x, y, angle, color) {
-            this.x = x;
-            this.y = y;
-            this.angle = angle;
-            this.color = color;
-            this.active = true;
+            this.x = x; this.y = y; this.angle = angle; this.color = color; this.active = true;
         }
-
         update() {
             const rad = (this.angle - 90) * Math.PI / 180;
-            this.x += Math.cos(rad) * BULLET_SPEED;
-            this.y += Math.sin(rad) * BULLET_SPEED;
-
+            this.x += Math.cos(rad) * B_SPEED;
+            this.y += Math.sin(rad) * B_SPEED;
+            
             // 墙壁碰撞
-            if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
-                this.active = false;
-            }
+            let c = Math.floor(this.x / WALL_SIZE), r = Math.floor(this.y / WALL_SIZE);
+            if(r >=0 && r < map.length && c >=0 && c < map[0].length && map[r][c] === 1) this.active = false;
+            if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
         }
-
         draw() {
             ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, BULLET_SIZE, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x, this.y, B_SIZE, 0, Math.PI*2); ctx.fill();
         }
     }
 
-    // 初始化玩家
-    let p1 = new Tank(300, 50, "#fb7185", { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", shoot: "Space" });
-    let p2 = new Tank(300, 350, "#60a5fa", { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", shoot: "Enter" });
-    p1.angle = 180; // P1 初始向下
+    let p1 = new Tank(60, 60, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
+    let p2 = new Tank(740, 540, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
+    let aiTanks = [
+        new Tank(400, 300, "#4ade80", {}, true),
+        new Tank(100, 500, "#4ade80", {}, true)
+    ];
     let bullets = [];
 
-    function resetGame() {
-        p1 = new Tank(300, 50, "#fb7185", { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", shoot: "Space" });
-        p1.angle = 180;
-        p2 = new Tank(300, 350, "#60a5fa", { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", shoot: "Enter" });
-        bullets = [];
-        isGameOver = false;
-        ui.style.display = "none";
-        hp1El.innerText = 3;
-        hp2El.innerText = 3;
-        requestAnimationFrame(gameLoop);
-    }
-
-    function checkCollision() {
+    function checkHit() {
         bullets.forEach(b => {
-            if (!b.active) return;
-            
-            // 检查子弹是否击中 P1
-            if (b.color !== p1.color) {
-                let dist = Math.hypot(b.x - p1.x, b.y - p1.y);
-                if (dist < TANK_SIZE/2 + BULLET_SIZE) {
-                    p1.hp--;
-                    hp1El.innerText = p1.hp;
-                    b.active = false;
+            if(!b.active) return;
+            [p1, p2, ...aiTanks].forEach(t => {
+                if(b.color !== t.color) {
+                    if(Math.hypot(b.x - t.x, b.y - t.y) < SIZE/2 + B_SIZE) {
+                        t.hp--; b.active = false;
+                        if(!t.isAI) {
+                            document.getElementById(t === p1 ? "hp1" : "hp2").innerText = Math.max(0, t.hp);
+                        }
+                    }
                 }
-            }
-
-            // 检查子弹是否击中 P2
-            if (b.color !== p2.color) {
-                let dist = Math.hypot(b.x - p2.x, b.y - p2.y);
-                if (dist < TANK_SIZE/2 + BULLET_SIZE) {
-                    p2.hp--;
-                    hp2El.innerText = p2.hp;
-                    b.active = false;
-                }
-            }
+            });
         });
-
-        // 胜负判定
-        if (p1.hp <= 0 || p2.hp <= 0) {
+        aiTanks = aiTanks.filter(t => t.hp > 0);
+        if(p1.hp <= 0 || p2.hp <= 0) {
             isGameOver = true;
-            ui.style.display = "block";
-            document.getElementById("winnerMsg").innerText = p1.hp <= 0 ? "玩家 2 胜利！" : "玩家 1 胜利！";
+            document.getElementById("ui").style.display = "block";
+            document.getElementById("msg").innerText = p1.hp <= 0 ? "玩家 2 胜利！" : "玩家 1 胜利！";
         }
     }
 
     function gameLoop() {
-        if (isGameOver) return;
+        if(isGameOver) return;
+        ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
+        
+        // 画地图
+        ctx.fillStyle = "#334155";
+        for(let r=0; r<map.length; r++) {
+            for(let c=0; c<map[r].length; c++) {
+                if(map[r][c] === 1) ctx.fillRect(c*WALL_SIZE, r*WALL_SIZE, WALL_SIZE, WALL_SIZE);
+            }
+        }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // 更新状态
-        p1.move();
-        p2.move();
+        p1.handleInput(); p2.handleInput();
+        aiTanks.forEach(t => t.handleInput());
         bullets = bullets.filter(b => b.active);
-        bullets.forEach(b => b.update());
-
-        checkCollision();
-
-        // 绘制
-        p1.draw();
-        p2.draw();
-        bullets.forEach(b => b.draw());
+        bullets.forEach(b => { b.update(); b.draw(); });
+        
+        checkHit();
+        p1.draw(); p2.draw();
+        aiTanks.forEach(t => t.draw());
 
         requestAnimationFrame(gameLoop);
     }
-
     gameLoop();
 </script>
 </body>
