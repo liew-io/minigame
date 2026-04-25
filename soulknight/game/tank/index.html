@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>元气坦克：防卡死流畅版</title>
+    <title>元气坦克：完美出生避障版</title>
     <style>
         body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
@@ -31,9 +31,8 @@
 <script>
     const canvas = document.getElementById("tankCanvas");
     const ctx = canvas.getContext("2d");
-    const TANK_SIZE = 26, B_SIZE = 4, B_SPEED = 7, WALL_SIZE = 40;
-    let isGameOver = false, boxTime = 30;
-    let aiMaxLimit = 3;
+    const TANK_SIZE = 24, WALL_SIZE = 40, B_SPEED = 7; // 稍微缩小坦克碰撞体积到24
+    let isGameOver = false, boxTime = 30, aiMaxLimit = 3;
 
     const map = [
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -53,19 +52,19 @@
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     ];
 
-    function getRandomEmptyPos(minDist = 150) {
-        let r, c, x, y;
-        for(let i=0; i<100; i++) {
-            r = Math.floor(Math.random()*15);
-            c = Math.floor(Math.random()*20);
-            x = c * 40 + 20; y = r * 40 + 20;
-            if(map[r][c] === 0) {
-                const d1 = Math.hypot(x - p1.x, y - p1.y);
-                const d2 = p2 ? Math.hypot(x - p2.x, y - p2.y) : 999;
-                if(d1 > minDist && d2 > minDist) return {x, y, r, c};
-            }
+    // --- 核心修复：安全生成逻辑 ---
+    // 寻找指定区域内的第一个空地
+    function getSafeSpawn(area = "all") {
+        let startR = 0, endR = 14, startC = 0, endC = 19;
+        if(area === "topLeft") { endR = 5; endC = 5; }
+        if(area === "bottomRight") { startR = 10; startC = 14; }
+
+        for(let i=0; i<200; i++) { // 随机尝试，如果失败则遍历
+            let r = Math.floor(Math.random() * (endR - startR + 1)) + startR;
+            let c = Math.floor(Math.random() * (endC - startC + 1)) + startC;
+            if(map[r][c] === 0) return { x: c * 40 + 20, y: r * 40 + 20 };
         }
-        return {x: 400, y: 300};
+        return { x: 400, y: 300 }; // 保底中心
     }
 
     class Particle {
@@ -82,8 +81,8 @@
         constructor(x, y, type) { this.x = x; this.y = y; this.type = type; this.active = true; }
         draw() {
             ctx.fillStyle = this.type === 'spread' ? "#f472b6" : "#fbbf24";
-            ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle;
-            ctx.beginPath(); ctx.arc(this.x, this.y, 10, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
+            ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
             ctx.shadowBlur = 0;
         }
     }
@@ -91,8 +90,7 @@
     class Tank {
         constructor(x, y, color, controls, isAI = false) {
             this.x = x; this.y = y; this.color = color;
-            this.angle = isAI ? 0 : 180; 
-            this.hp = 3; this.speed = isAI ? 1.8 : 2.4;
+            this.angle = isAI ? 0 : 180; this.hp = 3; this.speed = isAI ? 1.5 : 2.4;
             this.controls = controls; this.isAI = isAI;
             this.skill = null; this.lastShoot = 0; this.freezeUntil = 0; this.invincibleUntil = 0;
             this.aiDirTimer = 0; this.aiKey = "";
@@ -101,10 +99,9 @@
         draw() {
             const now = Date.now();
             ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle * Math.PI/180);
-            if (now < this.invincibleUntil && Math.floor(now/100)%2===0) ctx.fillStyle = "#fff";
-            else ctx.fillStyle = this.color;
+            ctx.fillStyle = (now < this.invincibleUntil && Math.floor(now/100)%2===0) ? "#fff" : this.color;
             ctx.fillRect(-TANK_SIZE/2, -TANK_SIZE/2, TANK_SIZE, TANK_SIZE);
-            ctx.fillStyle = "#fff"; ctx.fillRect(-2, -TANK_SIZE/2 - 10, 4, 15);
+            ctx.fillStyle = "#fff"; ctx.fillRect(-2, -TANK_SIZE/2 - 8, 4, 12);
             ctx.restore();
         }
 
@@ -113,19 +110,13 @@
             if (this.isAI) {
                 if (Date.now() > this.aiDirTimer) {
                     this.aiKey = ["W","A","S","D"][Math.floor(Math.random()*4)];
-                    this.aiDirTimer = Date.now() + 1200 + Math.random()*2000; // 稍微增长决策时间减少抖动
+                    this.aiDirTimer = Date.now() + 1000 + Math.random()*2000;
                 }
                 let dx=0, dy=0;
-                if(this.aiKey==="W"){dy=-this.speed; this.angle=0} 
-                else if(this.aiKey==="S"){dy=this.speed; this.angle=180}
-                else if(this.aiKey==="A"){dx=-this.speed; this.angle=270} 
-                else if(this.aiKey==="D"){dx=this.speed; this.angle=90}
-                
-                // AI 如果撞墙，立刻强制重置决策计时器，以便下一帧换方向
-                if(!this.tryMove(dx, dy)) {
-                    this.aiDirTimer = 0; 
-                }
-                if(Math.random() < 0.012) this.shoot();
+                if(this.aiKey==="W"){dy=-this.speed; this.angle=0} else if(this.aiKey==="S"){dy=this.speed; this.angle=180}
+                else if(this.aiKey==="A"){dx=-this.speed; this.angle=270} else if(this.aiKey==="D"){dx=this.speed; this.angle=90}
+                if(!this.tryMove(dx, dy)) this.aiDirTimer = 0;
+                if(Math.random() < 0.01) this.shoot();
             } else {
                 let dx=0, dy=0;
                 if (keys[this.controls.up]) { dy=-this.speed; this.angle=0 }
@@ -139,44 +130,27 @@
 
         tryMove(dx, dy) {
             let nx = this.x + dx, ny = this.y + dy;
-            // 碰撞检测箱稍微缩小 2px，防止擦边卡死
-            let half = TANK_SIZE/2 - 2; 
-            
-            // 边界检测
-            if (nx - half < 0 || nx + half > canvas.width || ny - half < 0 || ny + half > canvas.height) return false;
+            let padding = 2; // 增加碰撞内缩边距
+            let half = TANK_SIZE/2 - padding;
 
-            // 地图墙壁检测
-            let corners = [
-                {x: nx - half, y: ny - half},
-                {x: nx + half, y: ny - half},
-                {x: nx - half, y: ny + half},
-                {x: nx + half, y: ny + half}
-            ];
+            if (nx-half < 0 || nx+half > canvas.width || ny-half < 0 || ny+half > canvas.height) return false;
 
-            for (let p of corners) {
-                let c = Math.floor(p.x / WALL_SIZE);
-                let r = Math.floor(p.y / WALL_SIZE);
+            let checkPoints = [{x:nx-half, y:ny-half}, {x:nx+half, y:ny-half}, {x:nx-half, y:ny+half}, {x:nx+half, y:ny+half}];
+            for (let p of checkPoints) {
+                let r = Math.floor(p.y/WALL_SIZE), c = Math.floor(p.x/WALL_SIZE);
                 if (map[r] && map[r][c] !== 0) return false;
             }
 
-            // 坦克间碰撞检测
             let all = [p1, p2, ...aiTanks];
             for (let t of all) {
                 if (t !== this && Math.hypot(nx - t.x, ny - t.y) < TANK_SIZE - 2) return false;
             }
-
-            this.x = nx; this.y = ny;
-            return true;
+            this.x = nx; this.y = ny; return true;
         }
 
         shoot() {
-            if (Date.now() - this.lastShoot < 850) return;
-            const isP = this.skill === 'pierce';
-            if (this.skill === 'spread') {
-                for (let a of [-20, 0, 20]) bullets.push(new Bullet(this.x, this.y, this.angle+a, this.color, false));
-            } else {
-                bullets.push(new Bullet(this.x, this.y, this.angle, this.color, isP));
-            }
+            if (Date.now() - this.lastShoot < 800) return;
+            bullets.push(new Bullet(this.x, this.y, this.angle, this.color, this.skill==='pierce'));
             this.skill = null; this.updateUI();
             this.lastShoot = Date.now();
         }
@@ -184,63 +158,48 @@
         updateUI() {
             if (!this.isAI) {
                 const el = document.getElementById(this === p1 ? "sk1" : "sk2");
-                if(el) el.innerText = this.skill === 'spread' ? "分散弹" : (this.skill === 'pierce' ? "穿甲弹" : "无");
+                if(el) el.innerText = this.skill || "无";
             }
         }
     }
 
     class Bullet {
-        constructor(x, y, angle, color, isPierce) {
+        constructor(x, y, angle, color, isP) {
             this.x = x; this.y = y; this.angle = angle; this.color = color; 
-            this.active = true; this.isPierce = isPierce;
+            this.active = true; this.isP = isP;
         }
         update() {
             const rad = (this.angle - 90) * Math.PI / 180;
             this.x += Math.cos(rad) * B_SPEED; this.y += Math.sin(rad) * B_SPEED;
             if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
-            
             let c = Math.floor(this.x/WALL_SIZE), r = Math.floor(this.y/WALL_SIZE);
             if (map[r] && map[r][c] !== 0) {
                 if (map[r][c] === 2) { 
                     map[r][c] = 0; this.active = false;
-                    powerUps.push(new PowerUp(c*40+20, r*40+20, Math.random() > 0.5 ? 'spread' : 'pierce'));
-                    for(let i=0; i<15; i++) particles.push(new Particle(this.x, this.y, "#d97706"));
-                } else if (map[r][c] === 1 && !this.isPierce) {
-                    this.active = false;
-                    for(let i=0; i<5; i++) particles.push(new Particle(this.x, this.y, "#aaa"));
-                }
+                    powerUps.push(new PowerUp(c*40+20, r*40+20, Math.random()>0.5?'pierce':'spread'));
+                } else if (!this.isP) this.active = false;
             }
         }
-        draw() {
-            ctx.fillStyle = this.isPierce ? "#fbbf24" : this.color;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.isPierce?6:4, 0, Math.PI*2); ctx.fill();
-        }
+        draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI*2); ctx.fill(); }
     }
 
-    // 严谨初始化玩家位置
-    let p1 = new Tank(60, 60, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
-    let p2 = new Tank(740, 540, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
-    
+    // --- 玩家安全生成 ---
+    const p1Pos = getSafeSpawn("topLeft");
+    let p1 = new Tank(p1Pos.x, p1Pos.y, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
+    const p2Pos = getSafeSpawn("bottomRight");
+    let p2 = new Tank(p2Pos.x, p2Pos.y, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
+
     let aiTanks = [], bullets = [], powerUps = [], particles = [];
     const keys = {}; window.onkeydown = e => keys[e.code] = true; window.onkeyup = e => keys[e.code] = false;
 
-    // 初始 AI 生成
-    for(let i=0; i<3; i++) {
-        let pos = getRandomEmptyPos();
-        aiTanks.push(new Tank(pos.x, pos.y, "#4ade80", {}, true));
-    }
-
+    // 定时器：刷新箱子和难度
     setInterval(() => {
         if (isGameOver) return;
-        boxTime--;
-        if (boxTime <= 0) { 
-            let pos = getRandomEmptyPos(80);
-            map[pos.r][pos.c] = 2; 
-            if (aiMaxLimit < 10) {
-                aiMaxLimit++;
-                document.getElementById("aiMaxUI").innerText = aiMaxLimit;
-            }
-            boxTime = 30; 
+        if (--boxTime <= 0) {
+            let pos = getSafeSpawn(); map[pos.y/40|0][pos.x/40|0] = 2;
+            if (aiMaxLimit < 10) aiMaxLimit++;
+            document.getElementById("aiMaxUI").innerText = aiMaxLimit;
+            boxTime = 30;
         }
         document.getElementById("boxTimer").innerText = boxTime;
     }, 1000);
@@ -248,63 +207,48 @@
     function gameLoop() {
         if(isGameOver) return;
         ctx.fillStyle = "#020617"; ctx.fillRect(0,0,800,600);
-
+        
         for(let r=0; r<15; r++) {
             for(let c=0; c<20; c++) {
                 if(map[r][c] === 1) { ctx.fillStyle = "#334155"; ctx.fillRect(c*40, r*40, 40, 40); }
-                else if(map[r][c] === 2) {
-                    ctx.fillStyle = "#d97706"; ctx.fillRect(c*40+4, r*40+4, 32, 32);
-                    ctx.strokeStyle = "#fff"; ctx.strokeRect(c*40+8, r*40+8, 24, 24);
-                }
+                else if(map[r][c] === 2) { ctx.fillStyle = "#d97706"; ctx.fillRect(c*40+5, r*40+5, 30, 30); }
             }
         }
 
         powerUps = powerUps.filter(p => {
             p.draw();
-            [p1, p2].forEach(t => {
-                if(Math.hypot(t.x - p.x, t.y - p.y) < 25) { t.skill = p.type; t.updateUI(); p.active = false; }
-            });
+            [p1, p2].forEach(t => { if(Math.hypot(t.x-p.x, t.y-p.y) < 20){ t.skill = p.type; t.updateUI(); p.active=false; }});
             return p.active;
         });
 
-        p1.handleInput(); p2.handleInput();
-        aiTanks.forEach(t => t.handleInput());
-        p1.draw(); p2.draw();
-        aiTanks.forEach(t => t.draw());
+        [p1, p2, ...aiTanks].forEach(t => { t.handleInput(); t.draw(); });
 
         bullets = bullets.filter(b => {
             b.update(); b.draw();
             [p1, p2, ...aiTanks].forEach(t => {
-                if(b.active && b.color !== t.color && Math.hypot(b.x - t.x, b.y - t.y) < 18 && Date.now() > t.invincibleUntil) {
-                    b.active = false;
-                    if(t.isAI) { 
-                        t.hp = 0; 
-                        for(let i=0; i<20; i++) particles.push(new Particle(t.x, t.y, t.color)); 
-                    } else {
-                        t.hp--; t.invincibleUntil = Date.now() + 2000; t.freezeUntil = Date.now() + 500;
+                if(b.active && b.color !== t.color && Math.hypot(b.x-t.x, b.y-t.y) < 15 && Date.now() > t.invincibleUntil) {
+                    b.active = false; t.hp--; 
+                    if(!t.isAI) {
+                        t.invincibleUntil = Date.now()+2000;
                         document.getElementById(t===p1?"hp1":"hp2").innerText = Math.max(0, t.hp);
-                        for(let i=0; i<15; i++) particles.push(new Particle(t.x, t.y, t.color));
                     }
+                    for(let i=0; i<10; i++) particles.push(new Particle(t.x, t.y, t.color));
                 }
             });
             return b.active;
         });
 
-        particles = particles.filter(p => p.life > 0);
-        particles.forEach(p => { p.update(); p.draw(); });
+        particles = particles.filter(p => (p.update(), p.draw(), p.life > 0));
 
         if(aiTanks.length < aiMaxLimit && Math.random() < 0.01) {
-            let pos = getRandomEmptyPos(200);
+            let pos = getSafeSpawn();
             aiTanks.push(new Tank(pos.x, pos.y, "#4ade80", {}, true));
         }
         aiTanks = aiTanks.filter(t => t.hp > 0);
 
         if(p1.hp <= 0 || p2.hp <= 0) {
-            isGameOver = true;
-            document.getElementById("ui").style.display = "block";
-            const msg = document.getElementById("msg");
-            msg.innerText = p1.hp <= 0 ? "玩家 2 (蓝色) 获胜！" : "玩家 1 (红色) 获胜！";
-            msg.style.color = p1.hp <= 0 ? "#60a5fa" : "#fb7185";
+            isGameOver = true; document.getElementById("ui").style.display = "block";
+            document.getElementById("msg").innerText = p1.hp<=0 ? "蓝方胜！" : "红方胜！";
         }
         requestAnimationFrame(gameLoop);
     }
