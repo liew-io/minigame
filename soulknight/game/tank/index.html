@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>元气坦克：难度随时间升级版</title>
+    <title>元气坦克：防卡死流畅版</title>
     <style>
         body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
@@ -33,7 +33,7 @@
     const ctx = canvas.getContext("2d");
     const TANK_SIZE = 26, B_SIZE = 4, B_SPEED = 7, WALL_SIZE = 40;
     let isGameOver = false, boxTime = 30;
-    let aiMaxLimit = 3; // 初始上限为3
+    let aiMaxLimit = 3;
 
     const map = [
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -61,7 +61,7 @@
             x = c * 40 + 20; y = r * 40 + 20;
             if(map[r][c] === 0) {
                 const d1 = Math.hypot(x - p1.x, y - p1.y);
-                const d2 = Math.hypot(x - (p2?p2.x:0), y - (p2?p2.y:0));
+                const d2 = p2 ? Math.hypot(x - p2.x, y - p2.y) : 999;
                 if(d1 > minDist && d2 > minDist) return {x, y, r, c};
             }
         }
@@ -91,7 +91,7 @@
     class Tank {
         constructor(x, y, color, controls, isAI = false) {
             this.x = x; this.y = y; this.color = color;
-            this.angle = isAI ? Math.random()*360 : 180; 
+            this.angle = isAI ? 0 : 180; 
             this.hp = 3; this.speed = isAI ? 1.8 : 2.4;
             this.controls = controls; this.isAI = isAI;
             this.skill = null; this.lastShoot = 0; this.freezeUntil = 0; this.invincibleUntil = 0;
@@ -113,13 +113,19 @@
             if (this.isAI) {
                 if (Date.now() > this.aiDirTimer) {
                     this.aiKey = ["W","A","S","D"][Math.floor(Math.random()*4)];
-                    this.aiDirTimer = Date.now() + 1000 + Math.random()*1500;
+                    this.aiDirTimer = Date.now() + 1200 + Math.random()*2000; // 稍微增长决策时间减少抖动
                 }
                 let dx=0, dy=0;
-                if(this.aiKey==="W"){dy=-this.speed; this.angle=0} else if(this.aiKey==="S"){dy=this.speed; this.angle=180}
-                else if(this.aiKey==="A"){dx=-this.speed; this.angle=270} else if(this.aiKey==="D"){dx=this.speed; this.angle=90}
-                if(!this.tryMove(dx, dy)) this.aiDirTimer = 0;
-                if(Math.random() < 0.01) this.shoot();
+                if(this.aiKey==="W"){dy=-this.speed; this.angle=0} 
+                else if(this.aiKey==="S"){dy=this.speed; this.angle=180}
+                else if(this.aiKey==="A"){dx=-this.speed; this.angle=270} 
+                else if(this.aiKey==="D"){dx=this.speed; this.angle=90}
+                
+                // AI 如果撞墙，立刻强制重置决策计时器，以便下一帧换方向
+                if(!this.tryMove(dx, dy)) {
+                    this.aiDirTimer = 0; 
+                }
+                if(Math.random() < 0.012) this.shoot();
             } else {
                 let dx=0, dy=0;
                 if (keys[this.controls.up]) { dy=-this.speed; this.angle=0 }
@@ -133,22 +139,38 @@
 
         tryMove(dx, dy) {
             let nx = this.x + dx, ny = this.y + dy;
-            let half = TANK_SIZE/2 - 1;
-            let corners = [{x:nx-half, y:ny-half}, {x:nx+half, y:ny-half}, {x:nx-half, y:ny+half}, {x:nx+half, y:ny+half}];
+            // 碰撞检测箱稍微缩小 2px，防止擦边卡死
+            let half = TANK_SIZE/2 - 2; 
+            
+            // 边界检测
+            if (nx - half < 0 || nx + half > canvas.width || ny - half < 0 || ny + half > canvas.height) return false;
+
+            // 地图墙壁检测
+            let corners = [
+                {x: nx - half, y: ny - half},
+                {x: nx + half, y: ny - half},
+                {x: nx - half, y: ny + half},
+                {x: nx + half, y: ny + half}
+            ];
+
             for (let p of corners) {
-                if (p.x < 10 || p.x > canvas.width-10 || p.y < 10 || p.y > canvas.height-10) return false;
-                let c = Math.floor(p.x/WALL_SIZE), r = Math.floor(p.y/WALL_SIZE);
+                let c = Math.floor(p.x / WALL_SIZE);
+                let r = Math.floor(p.y / WALL_SIZE);
                 if (map[r] && map[r][c] !== 0) return false;
             }
+
+            // 坦克间碰撞检测
             let all = [p1, p2, ...aiTanks];
             for (let t of all) {
-                if (t !== this && Math.hypot(nx - t.x, ny - t.y) < TANK_SIZE) return false;
+                if (t !== this && Math.hypot(nx - t.x, ny - t.y) < TANK_SIZE - 2) return false;
             }
-            this.x = nx; this.y = ny; return true;
+
+            this.x = nx; this.y = ny;
+            return true;
         }
 
         shoot() {
-            if (Date.now() - this.lastShoot < 900) return;
+            if (Date.now() - this.lastShoot < 850) return;
             const isP = this.skill === 'pierce';
             if (this.skill === 'spread') {
                 for (let a of [-20, 0, 20]) bullets.push(new Bullet(this.x, this.y, this.angle+a, this.color, false));
@@ -160,7 +182,10 @@
         }
 
         updateUI() {
-            if (!this.isAI) document.getElementById(this === p1 ? "sk1" : "sk2").innerText = this.skill === 'spread' ? "分散弹" : (this.skill === 'pierce' ? "穿甲弹" : "无");
+            if (!this.isAI) {
+                const el = document.getElementById(this === p1 ? "sk1" : "sk2");
+                if(el) el.innerText = this.skill === 'spread' ? "分散弹" : (this.skill === 'pierce' ? "穿甲弹" : "无");
+            }
         }
     }
 
@@ -192,26 +217,29 @@
         }
     }
 
-    let p1 = new Tank(40, 40, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
-    let p2 = new Tank(760, 560, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
+    // 严谨初始化玩家位置
+    let p1 = new Tank(60, 60, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
+    let p2 = new Tank(740, 540, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
+    
     let aiTanks = [], bullets = [], powerUps = [], particles = [];
     const keys = {}; window.onkeydown = e => keys[e.code] = true; window.onkeyup = e => keys[e.code] = false;
 
-    // 核心：计时器逻辑（刷新箱子 + 提升难度）
+    // 初始 AI 生成
+    for(let i=0; i<3; i++) {
+        let pos = getRandomEmptyPos();
+        aiTanks.push(new Tank(pos.x, pos.y, "#4ade80", {}, true));
+    }
+
     setInterval(() => {
         if (isGameOver) return;
         boxTime--;
         if (boxTime <= 0) { 
-            // 刷新箱子
             let pos = getRandomEmptyPos(80);
             map[pos.r][pos.c] = 2; 
-            
-            // 提升上限
             if (aiMaxLimit < 10) {
                 aiMaxLimit++;
                 document.getElementById("aiMaxUI").innerText = aiMaxLimit;
             }
-            
             boxTime = 30; 
         }
         document.getElementById("boxTimer").innerText = boxTime;
@@ -249,8 +277,10 @@
             [p1, p2, ...aiTanks].forEach(t => {
                 if(b.active && b.color !== t.color && Math.hypot(b.x - t.x, b.y - t.y) < 18 && Date.now() > t.invincibleUntil) {
                     b.active = false;
-                    if(t.isAI) { t.hp = 0; for(let i=0; i<20; i++) particles.push(new Particle(t.x, t.y, t.color)); }
-                    else {
+                    if(t.isAI) { 
+                        t.hp = 0; 
+                        for(let i=0; i<20; i++) particles.push(new Particle(t.x, t.y, t.color)); 
+                    } else {
                         t.hp--; t.invincibleUntil = Date.now() + 2000; t.freezeUntil = Date.now() + 500;
                         document.getElementById(t===p1?"hp1":"hp2").innerText = Math.max(0, t.hp);
                         for(let i=0; i<15; i++) particles.push(new Particle(t.x, t.y, t.color));
@@ -263,7 +293,6 @@
         particles = particles.filter(p => p.life > 0);
         particles.forEach(p => { p.update(); p.draw(); });
 
-        // 根据当前上限自动补充 AI
         if(aiTanks.length < aiMaxLimit && Math.random() < 0.01) {
             let pos = getRandomEmptyPos(200);
             aiTanks.push(new Tank(pos.x, pos.y, "#4ade80", {}, true));
