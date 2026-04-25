@@ -1,102 +1,62 @@
+/* 引入像素风格字体（可选，增加复古感） */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 /* 全局复古暗色背景 */
 body {
     margin: 0;
     padding: 0;
-    background-color: #121212;
+    background-color: #0f172a; /* 深海军蓝，比纯黑更有深度 */
     color: #e0e0e0;
-    font-family: 'Segoe UI', 'Press Start 2P', cursive, sans-serif; /* 如果有像素字体更好 */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 /* 顶部标题栏 */
 header {
     width: 100%;
-    padding: 40px 0;
-    background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+    padding: 50px 0;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
     border-bottom: 4px solid #3b82f6;
     text-align: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-    margin-bottom: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-bottom: 50px;
 }
 
 header h1 {
     margin: 0;
-    font-size: 2.5rem;
+    font-size: 3rem;
     color: #60a5fa;
-    text-shadow: 2px 2px #1e40af;
-    letter-spacing: 2px;
+    text-shadow: 3px 3px 0px #1e40af, 0 0 20px rgba(96, 165, 250, 0.3);
+    letter-spacing: 4px;
+    font-family: 'Press Start 2P', cursive; /* 仅标题使用像素风 */
+    font-size: 2.2rem;
+}
+
+header p {
+    margin-top: 15px;
+    color: #94a3b8;
+    letter-spacing: 1px;
 }
 
 /* 游戏卡片容器 */
 .game-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 30px;
     padding: 20px;
-    max-width: 1000px;
+    max-width: 1100px;
+    width: 90%;
 }
 
 /* 游戏卡片设计 */
 .game-card {
     background: #1e293b;
     border: 3px solid #334155;
-    border-radius: 8px;
-    width: 280px;
+    border-radius: 16px; /* 更圆润现代的边角 */
     padding: 20px;
     text-align: center;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-/* 悬停效果：模仿游戏选择框 */
-.game-card:hover {
-    transform: scale(1.05);
-    border-color: #60a5fa;
-    box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
-}
-
-.game-card h3 {
-    margin: 15px 0;
-    color: #fff;
-    font-size: 1.4rem;
-}
-
-.game-card p {
-    font-size: 0.9rem;
-    color: #94a3b8;
-    line-height: 1.4;
-}
-
-/* 霓虹效果按钮 */
-.play-btn {
-    display: inline-block;
-    margin-top: 20px;
-    padding: 12px 24px;
-    background-color: #2563eb;
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-    border-radius: 4px;
-    text-transform: uppercase;
-    transition: background 0.2s;
-    border: none;
-    cursor: pointer;
-}
-
-.play-btn:hover {
-    background-color: #3b82f6;
-    box-shadow: 0 0 10px #60a5fa;
-}
-
-/* 页脚 */
-footer {
-    margin-top: auto;
-    padding: 20px;
-    color: #4b5563;
-    font-size: 0.8rem;
-}
+    transition: all 0.
