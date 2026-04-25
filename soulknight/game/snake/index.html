@@ -117,13 +117,25 @@
         }
 
         // 核心逻辑：防止反向自杀的方向控制
-        function setDir(dir) {
-            if (dir === "UP" && currentDir !== "DOWN") nextDir = "UP";
-            if (dir === "DOWN" && currentDir !== "UP") nextDir = "DOWN";
-            if (dir === "LEFT" && currentDir !== "RIGHT") nextDir = "LEFT";
-            if (dir === "RIGHT" && currentDir !== "LEFT") nextDir = "RIGHT";
-        }
+      function setDir(dir) {
+    // 检查是否按下了反方向
+    const isOpposite = 
+        (dir === "UP" && currentDir === "DOWN") ||
+        (dir === "DOWN" && currentDir === "UP") ||
+        (dir === "LEFT" && currentDir === "RIGHT") ||
+        (dir === "RIGHT" && currentDir === "LEFT");
 
+    if (isOpposite) {
+        // 【核心黑科技】：如果按了反方向，把蛇的身体倒过来！
+        snake.reverse(); 
+        // 重新确定现在的真实方向
+        nextDir = dir;
+        currentDir = dir; 
+    } else {
+        // 正常的 90 度转弯
+        nextDir = dir;
+    }
+}
         function update() {
             // 在更新逻辑时，正式确认方向
             currentDir = nextDir;
