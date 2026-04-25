@@ -1,0 +1,65 @@
+/* 基础重置 */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0f172a; /* 深蓝色背景 */
+    color: #f8fafc;
+    text-align: center;
+}
+
+header {
+    padding: 50px 20px;
+    background: #1e293b;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+/* 游戏网格布局 */
+.game-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    padding: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 游戏卡片样式 */
+.game-card {
+    background: #1e293b;
+    border-radius: 15px;
+    padding: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid #334155;
+}
+
+.game-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+
+.thumbnail {
+    width: 100%;
+    height: 160px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.play-btn {
+    display: inline-block;
+    padding: 10px 25px;
+    background-color: #38bdf8;
+    color: #0f172a;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.play-btn:hover {
+    background-color: #7dd3fc;
+}
