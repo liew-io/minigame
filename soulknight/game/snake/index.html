@@ -49,12 +49,17 @@
 </div>
 
 <script>
-    // 1. 初始化（统一使用 _supabase 变量名）
-    const SUPABASE_URL = 'https://zyltashytubjqqysjjyt.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5bHRhc2h5dHVianFxeXNqanl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMzk2NTksImV4cCI6MjA5MjcxNTY1OX0.Y7OlxY9H3wb99-F3K4cvrExxhXPNfKUtPj0t4pMCLuE';
+    // 1. 配置信息
+    const SB_URL = 'https://zyltashytubjqqysjjyt.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5bHRhc2h5dHVianFxeXNqanl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMzk2NTksImV4cCI6MjA5MjcxNTY1OX0.Y7OlxY9H3wb99-F3K4cvrExxhXPNfKUtPj0t4pMCLuE';
     
-    // 这里确保使用不同的变量名 _supabase
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 2. 初始化数据库客户端 (改名 dbClient 彻底避免冲突)
+    let dbClient;
+    try {
+        dbClient = supabase.createClient(SB_URL, SB_KEY);
+    } catch (e) {
+        console.error("数据库初始化失败:", e);
+    }
 
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
@@ -66,14 +71,14 @@
     let snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
     let food = {x: 5, y: 5};
     let currentDir = "UP", nextDir = "UP", score = 0, lastRenderTime = 0;
-
     let localBest = localStorage.getItem("snake_max_score") || 0;
     highScoreEl.innerText = localBest;
 
-    // --- 数据库逻辑 (全部改为使用 _supabase) ---
+    // --- 数据库操作 ---
     async function fetchLeaderboard() {
+        if (!dbClient) return;
         try {
-            const { data, error } = await _supabase
+            const { data, error } = await dbClient
                 .from('leaderboard')
                 .select('name, score')
                 .order('score', { ascending: false })
@@ -88,42 +93,30 @@
                 `).join('');
             }
         } catch (e) {
-            console.error("加载失败", e);
+            document.getElementById("rankList").innerHTML = "加载排行失败";
         }
     }
 
     async function submitScore(finalScore) {
+        if (!dbClient) return;
         const playerName = prompt("游戏结束！输入名字上榜：", "匿名玩家");
         if (!playerName) return;
 
         try {
-            const { error } = await _supabase
-                .from('leaderboard')
-                .insert([{ name: playerName, score: finalScore }]);
-            
-            if (!error) fetchLeaderboard();
+            await dbClient.from('leaderboard').insert([{ name: playerName, score: finalScore }]);
+            fetchLeaderboard();
         } catch (e) {
-            console.error("提交失败", e);
+            console.error("提交失败");
         }
     }
 
-    // --- 游戏核心逻辑 ---
-    function main(currentTime) {
-        window.requestAnimationFrame(main);
-        const speed = 7 + Math.floor(score / 3);
-        if ((currentTime - lastRenderTime) / 1000 < 1 / speed) return;
-        lastRenderTime = currentTime;
-        update();
-        draw();
-    }
-
+    // --- 游戏逻辑 ---
     function setDir(dir) {
-        // 防止掉头逻辑
-        const isOpposite = (dir === "UP" && currentDir === "DOWN") || 
-                          (dir === "DOWN" && currentDir === "UP") || 
-                          (dir === "LEFT" && currentDir === "RIGHT") || 
-                          (dir === "RIGHT" && currentDir === "LEFT");
-        if (!isOpposite) { nextDir = dir; }
+        // 修改：增加简单的控制逻辑，确保响应
+        if (dir === "UP" && currentDir !== "DOWN") nextDir = "UP";
+        if (dir === "DOWN" && currentDir !== "UP") nextDir = "DOWN";
+        if (dir === "LEFT" && currentDir !== "RIGHT") nextDir = "LEFT";
+        if (dir === "RIGHT" && currentDir !== "LEFT") nextDir = "RIGHT";
     }
 
     function update() {
@@ -136,7 +129,6 @@
 
         const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-        // 碰撞检测
         if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount || 
             snake.some((s, i) => i !== 0 && s.x === head.x && s.y === head.y)) {
             const finalScore = score;
@@ -159,30 +151,18 @@
     }
 
     function draw() {
-        ctx.fillStyle = "#000"; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // 画食物
-        ctx.fillStyle = "#fb7185"; 
-        ctx.beginPath(); 
-        ctx.roundRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4, 5); 
-        ctx.fill();
-
-        // 画蛇
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fb7185"; ctx.beginPath(); ctx.roundRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4, 5); ctx.fill();
         snake.forEach((part, i) => {
             ctx.fillStyle = i === 0 ? "#4ade80" : "#1e293b";
-            ctx.beginPath(); 
-            ctx.roundRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2, i === 0 ? 6 : 2); 
-            ctx.fill();
+            ctx.beginPath(); ctx.roundRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2, i === 0 ? 6 : 2); ctx.fill();
         });
     }
 
     function gameOver() {
-        score = 0; 
-        scoreEl.innerText = "0";
+        score = 0; scoreEl.innerText = "0";
         snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
-        nextDir = "UP"; 
-        currentDir = "UP";
+        nextDir = "UP"; currentDir = "UP";
         generateFood();
     }
 
@@ -191,17 +171,26 @@
         if (snake.some(s => s.x === food.x && s.y === food.y)) generateFood();
     }
 
-    // 键盘监听支持
-    document.addEventListener('keydown', e => {
-        if(e.key === 'ArrowUp') setDir('UP');
-        if(e.key === 'ArrowDown') setDir('DOWN');
-        if(e.key === 'ArrowLeft') setDir('LEFT');
-        if(e.key === 'ArrowRight') setDir('RIGHT');
-    });
+    function main(currentTime) {
+        window.requestAnimationFrame(main);
+        const speed = 7 + Math.floor(score / 3);
+        if ((currentTime - lastRenderTime) / 1000 < 1 / speed) return;
+        lastRenderTime = currentTime;
+        update();
+        draw();
+    }
+
+    // 键盘支持
+    document.onkeydown = (e) => {
+        if (e.key === "ArrowUp") setDir("UP");
+        if (e.key === "ArrowDown") setDir("DOWN");
+        if (e.key === "ArrowLeft") setDir("LEFT");
+        if (e.key === "ArrowRight") setDir("RIGHT");
+    };
 
     // 启动
-    fetchLeaderboard();
     generateFood();
+    fetchLeaderboard();
     window.requestAnimationFrame(main);
 </script>
 </body>
