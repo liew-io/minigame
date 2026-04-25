@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>元气坦克：粒子特效版</title>
+    <title>元气坦克：2秒无敌闪烁版</title>
     <style>
         body { margin: 0; background-color: #020617; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
@@ -61,7 +61,6 @@
     window.onkeydown = e => keys[e.code] = true;
     window.onkeyup = e => keys[e.code] = false;
 
-    // --- 粒子系统 ---
     class Particle {
         constructor(x, y, color) {
             this.x = x; this.y = y;
@@ -70,10 +69,7 @@
             this.life = 1.0;
             this.color = color;
         }
-        update() {
-            this.x += this.vx; this.y += this.vy;
-            this.life -= 0.04;
-        }
+        update() { this.x += this.vx; this.y += this.vy; this.life -= 0.04; }
         draw() {
             ctx.globalAlpha = this.life;
             ctx.fillStyle = this.color;
@@ -89,9 +85,8 @@
             this.angle = 180; this.hp = 3; this.speed = 2.5;
             this.controls = controls; this.lastShoot = 0;
             this.isAI = isAI;
-            // 状态计时器
-            this.freezeUntil = 0;      // 停顿结束时间
-            this.invincibleUntil = 0; // 无敌结束时间
+            this.freezeUntil = 0;
+            this.invincibleUntil = 0;
             this.aiDirTimer = 0;
             this.aiCurrentKey = "";
         }
@@ -102,24 +97,24 @@
             ctx.translate(this.x, this.y);
             ctx.rotate(this.angle * Math.PI / 180);
             
-            // 无敌状态绘制白光效果
+            // 无敌状态：亮白光并闪烁
             if (now < this.invincibleUntil) {
+                const isFlashOn = Math.floor(now / 100) % 2 === 0;
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = "#ffffff";
-                ctx.fillStyle = "#ffffff"; // 无敌时变白
+                ctx.fillStyle = isFlashOn ? "#ffffff" : this.color;
             } else {
                 ctx.fillStyle = this.color;
             }
             
             ctx.fillRect(-TANK_SIZE/2, -TANK_SIZE/2, TANK_SIZE, TANK_SIZE);
-            ctx.fillStyle = (now < this.invincibleUntil) ? "#ffffff" : "#fff";
+            ctx.fillStyle = "#fff";
             ctx.fillRect(-2, -TANK_SIZE/2 - 10, 4, 15);
             ctx.restore();
         }
 
         handleInput() {
-            if (Date.now() < this.freezeUntil) return; // 停顿中，无法操作
-
+            if (Date.now() < this.freezeUntil) return;
             if(this.isAI) {
                 this.updateAI();
             } else {
@@ -167,20 +162,18 @@
             this.lastShoot = Date.now();
         }
 
-        // --- 受击逻辑 ---
         getHit() {
-            if (Date.now() < this.invincibleUntil) return; // 无敌中，不响应
+            if (Date.now() < this.invincibleUntil) return; 
 
             this.hp--;
-            // 产生粒子效果
-            for(let i=0; i<15; i++) particles.push(new Particle(this.x, this.y, this.color));
+            for(let i=0; i<20; i++) particles.push(new Particle(this.x, this.y, this.color));
             
             if (!this.isAI) {
                 this.freezeUntil = Date.now() + 500;      // 停顿0.5秒
-                this.invincibleUntil = Date.now() + 1000; // 无敌1秒
+                this.invincibleUntil = Date.now() + 2000; // 调整为2秒无敌
                 document.getElementById(this === p1 ? "hp1" : "hp2").innerText = Math.max(0, this.hp);
             } else {
-                this.hp = 0; // AI直接死亡
+                this.hp = 0;
             }
         }
     }
@@ -196,7 +189,6 @@
             let c = Math.floor(this.x / WALL_SIZE), r = Math.floor(this.y / WALL_SIZE);
             if(r >=0 && r < map.length && c >=0 && c < map[0].length && map[r][c] === 1) {
                 this.active = false;
-                // 击中墙壁产生少量火花
                 for(let i=0; i<3; i++) particles.push(new Particle(this.x, this.y, "#aaa"));
             }
             if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
@@ -209,8 +201,7 @@
 
     let p1 = new Tank(20, 20, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
     let p2 = new Tank(780, 580, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
-    let aiTanks = [];
-    let bullets = [];
+    let aiTanks = [], bullets = [];
 
     function spawnAI(count) {
         for(let i=0; i<count; i++) {
@@ -230,50 +221,38 @@
             [p1, p2, ...aiTanks].forEach(t => {
                 if(b.color !== t.color && Math.hypot(b.x - t.x, b.y - t.y) < TANK_SIZE/2 + B_SIZE) {
                     b.active = false;
-                    t.getHit(); // 调用受击方法
+                    t.getHit();
                 }
             });
         });
-
         aiTanks = aiTanks.filter(t => t.hp > 0);
         document.getElementById("aiCount").innerText = aiTanks.length;
         if(aiTanks.length < 2 && !isGameOver) spawnAI(3);
-
         if(p1.hp <= 0 || p2.hp <= 0) {
             isGameOver = true;
             document.getElementById("ui").style.display = "block";
-            document.getElementById("msg").innerText = p1.hp <= 0 ? "蓝色坦克胜出！" : "红色坦克胜出！";
+            document.getElementById("msg").innerText = p1.hp <= 0 ? "蓝色胜出！" : "红色胜出！";
         }
     }
 
     function gameLoop() {
         if(isGameOver) return;
         ctx.fillStyle = "#020617"; ctx.fillRect(0,0,canvas.width, canvas.height);
-        
-        // 墙壁
         ctx.fillStyle = "#334155";
         for(let r=0; r<map.length; r++) {
             for(let c=0; c<map[r].length; c++) {
                 if(map[r][c] === 1) ctx.fillRect(c*WALL_SIZE, r*WALL_SIZE, WALL_SIZE, WALL_SIZE);
             }
         }
-
-        // 更新坦克
         p1.handleInput(); p2.handleInput();
         aiTanks.forEach(t => t.handleInput());
-        
-        // 更新子弹
         bullets = bullets.filter(b => b.active);
         bullets.forEach(b => { b.update(); b.draw(); });
-        
-        // 更新粒子
         particles = particles.filter(p => p.life > 0);
         particles.forEach(p => { p.update(); p.draw(); });
-        
         checkHit();
         p1.draw(); p2.draw();
         aiTanks.forEach(t => t.draw());
-
         requestAnimationFrame(gameLoop);
     }
     gameLoop();
