@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>元气坦克：大战略版</title>
+    <title>元气坦克：终极对决版</title>
     <style>
         body { margin: 0; background-color: #0f172a; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
         .hud { display: flex; gap: 30px; padding: 15px; background: #1e293b; width: 100%; justify-content: center; border-bottom: 2px solid #334155; }
@@ -12,22 +12,24 @@
         .p2 { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
         #container { position: relative; margin-top: 20px; }
         canvas { background-color: #000; border: 4px solid #334155; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        #ui { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(30, 41, 59, 0.95); padding: 30px; border-radius: 20px; text-align: center; border: 2px solid #4ade80; }
-        button { background: #4ade80; color: #0b0f1a; border: none; padding: 10px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; margin-top: 15px; font-weight: bold; }
+        #ui { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(30, 41, 59, 0.98); padding: 40px; border-radius: 24px; text-align: center; border: 2px solid #4ade80; z-index: 100; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        button { background: #4ade80; color: #0b0f1a; border: none; padding: 12px 40px; font-size: 20px; border-radius: 12px; cursor: pointer; margin-top: 20px; font-weight: bold; transition: 0.2s; }
+        button:hover { transform: scale(1.05); background: #22c55e; }
     </style>
 </head>
 <body>
 
 <div class="hud">
-    <div class="hp-box p1">P1 (红): <span id="hp1">3</span> ❤️</div>
-    <div class="hp-box p2">P2 (蓝): <span id="hp2">3</span> ❤️</div>
-    <div class="hp-box" style="color:#fbbf24">敌军 AI: 随机干扰</div>
+    <div class="hp-box p1">玩家 1 (WASD): <span id="hp1">3</span> ❤️</div>
+    <div class="hp-box p2">玩家 2 (方向键): <span id="hp2">3</span> ❤️</div>
+    <div class="hp-box" style="color:#fbbf24">敌方 AI: 自动干扰</div>
 </div>
 
 <div id="container">
     <canvas id="tankCanvas" width="800" height="600"></canvas>
     <div id="ui">
-        <h1 id="msg" style="color: #fbbf24;">游戏结束</h1>
+        <h1 id="msg" style="color: #fbbf24; font-size: 36px; margin: 0;">游戏结束</h1>
+        <p id="subMsg" style="color: #94a3b8; margin: 10px 0;">点击下方按钮重新开始</p>
         <button onclick="location.reload()">重新开战</button>
     </div>
 </div>
@@ -35,10 +37,15 @@
 <script>
     const canvas = document.getElementById("tankCanvas");
     const ctx = canvas.getContext("2d");
-    const SIZE = 30, B_SIZE = 5, B_SPEED = 6, WALL_SIZE = 40;
+    
+    // 基础参数
+    const TANK_SIZE = 26; 
+    const B_SIZE = 4;
+    const B_SPEED = 7;
+    const WALL_SIZE = 40;
     let isGameOver = false;
 
-    // 1. 地图配置 (1代表墙壁)
+    // 地图布局 (1=墙, 0=空地)
     const map = [
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0],
@@ -75,10 +82,12 @@
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.rotate(this.angle * Math.PI / 180);
+            // 坦克主体
             ctx.fillStyle = this.color;
-            ctx.fillRect(-SIZE/2, -SIZE/2, SIZE, SIZE);
+            ctx.fillRect(-TANK_SIZE/2, -TANK_SIZE/2, TANK_SIZE, TANK_SIZE);
+            // 炮管
             ctx.fillStyle = "#fff";
-            ctx.fillRect(-2, -SIZE/2 - 8, 4, 12);
+            ctx.fillRect(-2, -TANK_SIZE/2 - 10, 4, 15);
             ctx.restore();
         }
 
@@ -93,7 +102,7 @@
                 else if (keys[this.controls.right]) { dx = this.speed; this.angle = 90; }
                 
                 if(dx !== 0 || dy !== 0) this.tryMove(dx, dy);
-                if (keys[this.controls.shoot] && Date.now() - this.lastShoot > 800) this.shoot();
+                if (keys[this.controls.shoot]) this.shoot();
             }
         }
 
@@ -101,39 +110,47 @@
             if(Date.now() > this.aiDirTimer) {
                 const dirs = ["W","A","S","D"];
                 this.aiCurrentKey = dirs[Math.floor(Math.random()*dirs.length)];
-                this.aiDirTimer = Date.now() + 1000 + Math.random()*2000;
+                this.aiDirTimer = Date.now() + 1000 + Math.random()*1500;
             }
             let dx = 0, dy = 0;
-            if(this.aiCurrentKey === "W") { dy = -this.speed/1.5; this.angle = 0; }
-            else if(this.aiCurrentKey === "S") { dy = this.speed/1.5; this.angle = 180; }
-            else if(this.aiCurrentKey === "A") { dx = -this.speed/1.5; this.angle = 270; }
-            else if(this.aiCurrentKey === "D") { dx = this.speed/1.5; this.angle = 90; }
+            if(this.aiCurrentKey === "W") { dy = -1.8; this.angle = 0; }
+            else if(this.aiCurrentKey === "S") { dy = 1.8; this.angle = 180; }
+            else if(this.aiCurrentKey === "A") { dx = -1.8; this.angle = 270; }
+            else if(this.aiCurrentKey === "D") { dx = 1.8; this.angle = 90; }
             
-            if(!this.tryMove(dx, dy)) this.aiDirTimer = 0; // 撞墙立即换向
-            if(Math.random() < 0.02) this.shoot(); // 随机开火
+            if(!this.tryMove(dx, dy)) this.aiDirTimer = 0; // 撞墙立即转向
+            if(Math.random() < 0.025) this.shoot();
         }
 
         tryMove(dx, dy) {
             let nextX = this.x + dx;
             let nextY = this.y + dy;
-            
-            // 碰撞墙壁检测
-            let col = Math.floor(nextX / WALL_SIZE);
-            let row = Math.floor(nextY / WALL_SIZE);
-            
-            if(row >=0 && row < map.length && col >=0 && col < map[0].length) {
-                if(map[row][col] === 1) return false;
+            let half = TANK_SIZE / 2 - 2; // 碰撞缓冲半径
+
+            // 四角检测：左上、右上、左下、右下
+            let corners = [
+                {x: nextX - half, y: nextY - half},
+                {x: nextX + half, y: nextY - half},
+                {x: nextX - half, y: nextY + half},
+                {x: nextX + half, y: nextY + half}
+            ];
+
+            for (let p of corners) {
+                if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) return false;
+                let col = Math.floor(p.x / WALL_SIZE);
+                let row = Math.floor(p.y / WALL_SIZE);
+                if (row >= 0 && row < map.length && col >= 0 && col < map[0].length) {
+                    if (map[row][col] === 1) return false;
+                }
             }
-            
-            // 边界检测
-            if(nextX < SIZE/2 || nextX > canvas.width - SIZE/2 || nextY < SIZE/2 || nextY > canvas.height - SIZE/2) return false;
-            
-            this.x = nextX; this.y = nextY;
+
+            this.x = nextX;
+            this.y = nextY;
             return true;
         }
 
         shoot() {
-            if(Date.now() - this.lastShoot < 1000) return;
+            if(Date.now() - this.lastShoot < 700) return;
             bullets.push(new Bullet(this.x, this.y, this.angle, this.color));
             this.lastShoot = Date.now();
         }
@@ -148,7 +165,6 @@
             this.x += Math.cos(rad) * B_SPEED;
             this.y += Math.sin(rad) * B_SPEED;
             
-            // 墙壁碰撞
             let c = Math.floor(this.x / WALL_SIZE), r = Math.floor(this.y / WALL_SIZE);
             if(r >=0 && r < map.length && c >=0 && c < map[0].length && map[r][c] === 1) this.active = false;
             if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
@@ -159,11 +175,16 @@
         }
     }
 
-    let p1 = new Tank(60, 60, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
-    let p2 = new Tank(740, 540, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
+    // 初始化玩家：P1(40,40) P2(760,560) 确保在空地
+    let p1 = new Tank(40, 40, "#fb7185", { up:"KeyW", down:"KeyS", left:"KeyA", right:"KeyD", shoot:"Space" });
+    p1.angle = 180;
+    let p2 = new Tank(760, 560, "#60a5fa", { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight", shoot:"Enter" });
+    p2.angle = 0;
+
     let aiTanks = [
         new Tank(400, 300, "#4ade80", {}, true),
-        new Tank(100, 500, "#4ade80", {}, true)
+        new Tank(100, 500, "#4ade80", {}, true),
+        new Tank(700, 100, "#4ade80", {}, true)
     ];
     let bullets = [];
 
@@ -172,7 +193,7 @@
             if(!b.active) return;
             [p1, p2, ...aiTanks].forEach(t => {
                 if(b.color !== t.color) {
-                    if(Math.hypot(b.x - t.x, b.y - t.y) < SIZE/2 + B_SIZE) {
+                    if(Math.hypot(b.x - t.x, b.y - t.y) < TANK_SIZE/2 + B_SIZE) {
                         t.hp--; b.active = false;
                         if(!t.isAI) {
                             document.getElementById(t === p1 ? "hp1" : "hp2").innerText = Math.max(0, t.hp);
@@ -191,9 +212,9 @@
 
     function gameLoop() {
         if(isGameOver) return;
-        ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#020617"; ctx.fillRect(0,0,canvas.width, canvas.height);
         
-        // 画地图
+        // 绘制墙壁
         ctx.fillStyle = "#334155";
         for(let r=0; r<map.length; r++) {
             for(let c=0; c<map[r].length; c++) {
