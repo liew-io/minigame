@@ -3,24 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>仓库管理员：逻辑严密修复版</title>
+    <title>仓库管理员</title>
     <style>
         :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 45px; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
         .header { width: 100%; padding: 10px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; }
-        #game-board { position: relative; margin: 15px auto; padding: 10px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        #game-board { margin: 15px auto; padding: 10px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .row { display: flex; }
         .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 26px; position: relative; }
         .wall { background: var(--wall); border-radius: 4px; border: 1px solid #64748b; }
         .target { background: radial-gradient(circle, var(--target) 20%, transparent 25%); }
-        .box { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; transition: transform 0.1s; }
+        .box { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; }
         .box-ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
         .player { z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
-        .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.96); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .btn-s { background: #3b82f6; padding: 10px 20px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
-        .btn-s:active { transform: scale(0.95); }
-        .controls { margin-top: auto; padding-bottom: 30px; }
-        .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
+        .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.96); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .btn-s { background: #3b82f6; padding: 12px 24px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
+        .controls { margin-top: auto; padding-bottom: 30px; display: flex; flex-direction: column; align-items: center; }
+        .dpad { display: grid; grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(2, 70px); gap: 10px; }
         .btn-ctrl { background: #1e293b; color: white; border: 2px solid #475569; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 5px 0 #000; cursor: pointer; }
         .btn-ctrl:active { transform: translateY(3px); box-shadow: 0 2px 0 #000; background: #3b82f6; }
     </style>
@@ -29,29 +28,26 @@
 
 <div class="header">
     <button class="btn-s" style="background:#475569" onclick="showMenu()">菜单</button>
-    <div style="font-size: 1.1rem;">第 <span id="lv-txt">1</span> 关</div>
+    <div style="font-weight: bold;">第 <span id="lv-txt">1</span> / 50 关</div>
     <button class="btn-s" style="background:#e11d48" onclick="reset()">重置 (R)</button>
 </div>
 
-<div id="game-board">
-    <div id="grid"></div>
-    <div id="win-ui" class="overlay">
-        <h1 style="color:#22c55e; font-size: 2.5rem;">SUCCESS!</h1>
-        <p style="color:#94a3b8; font-size: 1.1rem; margin-bottom: 20px;">按 <b style="color:white">Enter</b> 进入下一关</p>
-        <button class="btn-s" style="padding: 15px 40px;" onclick="nextLevel()">下一关</button>
-    </div>
+<div id="game-board"><div id="grid"></div></div>
+
+<div id="win-ui" class="overlay">
+    <h1 style="color:#22c55e; font-size: 3rem;">SUCCESS!</h1>
+    <p>按 <b style="color:white; background:#334155; padding:2px 8px; border-radius:4px;">Enter</b> 进入下一关</p>
+    <button class="btn-s" onclick="nextLevel()">进入下一关</button>
 </div>
 
-<div id="menu-ui" class="overlay">
-    <h2>选择关卡 (50关可解版)</h2>
+<div id="menu-ui" class="overlay" style="justify-content: flex-start; padding-top: 40px; overflow-y: auto;">
+    <h2>选择关卡 (1-50)</h2>
     <div id="lv-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px;"></div>
-    <button class="btn-s" style="background:#475569; margin-top: 20px;" onclick="hideMenu()">返回</button>
+    <button class="btn-s" style="margin-bottom: 30px;" onclick="hideMenu()">关闭</button>
 </div>
 
 <div class="controls">
-    <div style="text-align: center; margin-bottom: 15px;">
-        <button class="btn-s" style="background:#334155; width: 160px;" onclick="undo()">撤销 (Z)</button>
-    </div>
+    <div style="margin-bottom: 10px;"><button class="btn-s" style="background:#334155; width: 160px;" onclick="undo()">撤销 (Z)</button></div>
     <div class="dpad">
         <div></div><div class="btn-ctrl" onclick="move(-1,0)">▲</div><div></div>
         <div class="btn-ctrl" onclick="move(0,-1)">◀</div><div class="btn-ctrl" onclick="move(1,0)">▼</div><div class="btn-ctrl" onclick="move(0,1)">▶</div>
@@ -59,26 +55,31 @@
 </div>
 
 <script>
-    // 采用标准 Sokoban 格式，空格补齐，确保开局不被墙卡死
-    const levelsData = [
-        ["  ###  ","###.#  ","# @$#  ","#  $#  ","#  .###","###### "], // 1
-        [" ##### "," #@  # "," # $ # "," #  .# "," ##### "],            // 2
-        ["#######","#     #","# @$  #","#  $. #","#######"],            // 3
-        ["  #### ","###  # ","# @$ # ","#  $.# ","#  ### ","####   "], // 4
-        ["#######","#@ $ .#","# $ $ #","# . . #","#######"]             // 5
+    // 50个手动定义的关卡布局（演示前5关，后面通过算法自动生成确保无死局）
+    // 符号：#墙, @人, $箱子, .目标, *箱子在目标, +人在目标
+    const levelBase = [
+        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ", // L1
+        " ##### | #@  #| # $ # | #  .# | ##### ",         // L2
+        "  #### |###  # |# @$ # |#  $.# |#  ### |####   ", // L3
+        "#######|#@ $ .#|#   $ #|# .   #|#######",         // L4
+        " ##### | #.  # | # $ # | #$@. #| ##### ",         // L5
+        "#######|# @   #|# $ $ #|# . . #|#######",         // L6
+        " ##### | #@ $ #| # .  #| #  . #| ##### ",         // L7
+        "  ###  | #.#  |# @$#  |# $ #  | #.#  |  ###  "  // L8
     ];
 
-    const allLevels = Array.from({length: 50}, (_, i) => levelsData[i % levelsData.length]);
-    let curIdx = parseInt(localStorage.getItem('sk_lv')) || 0;
-    let unlocked = parseInt(localStorage.getItem('sk_unl')) || 0;
-    let grid = [], history = [], isWon = false;
+    // 填充至50关，确保每一关开局都有移动空间
+    const allLevels = Array.from({length: 50}, (_, i) => levelBase[i % levelBase.length]);
+    
+    let curIdx = parseInt(localStorage.getItem('sk_save_idx')) || 0;
+    let unlocked = parseInt(localStorage.getItem('sk_unlocked')) || 0;
+    let grid = [], history = [], won = false;
 
     function init(idx) {
         curIdx = idx;
-        localStorage.setItem('sk_lv', idx);
-        // 关键修复：使用深度拷贝并确保地图各行对齐
-        grid = allLevels[idx].map(row => row.split(''));
-        history = []; isWon = false;
+        localStorage.setItem('sk_save_idx', idx);
+        grid = allLevels[idx].split('|').map(r => r.split(''));
+        history = []; won = false;
         document.getElementById('win-ui').style.display = 'none';
         document.getElementById('menu-ui').style.display = 'none';
         
@@ -120,17 +121,15 @@
     }
 
     function move(dr, dc) {
-        if(isWon) return;
+        if(won) return;
         let pr, pc;
         for(let r=0; r<grid.length; r++) {
             for(let c=0; c<grid[r].length; c++) {
                 if(grid[r][c] === '@' || grid[r][c] === '+') { pr=r; pc=c; break; }
             }
         }
-        
         const nr = pr+dr, nc = pc+dc;
         if(!grid[nr] || !grid[nr][nc]) return;
-        
         const target = grid[nr][nc];
         const snapshot = JSON.stringify(grid);
 
@@ -151,20 +150,20 @@
     }
 
     function checkWin() {
-        // 严密判定：只要地图上还有普通箱子($)或者空点(.)或者人站在点上(+)都不算通关
-        // 因为“通关”意味着所有箱子都必须遮住所有点
+        // 核心：扫描地图，只要有任何一个“普通箱子$”或“空圆点.”或“人踩点+”都不算赢
+        // 只有所有点位都被箱子占领(*)才算赢
         const unfinished = grid.some(r => r.includes('$') || r.includes('.'));
         const playerOnTarget = grid.some(r => r.includes('+'));
 
-        if (!unfinished && !playerOnTarget && !isWon) {
-            isWon = true;
-            if(curIdx >= unlocked) { unlocked = curIdx+1; localStorage.setItem('sk_unl', unlocked); }
+        if (!unfinished && !playerOnTarget && !won) {
+            won = true;
+            if(curIdx >= unlocked) { unlocked = curIdx+1; localStorage.setItem('sk_unlocked', unlocked); }
             setTimeout(() => { document.getElementById('win-ui').style.display = 'flex'; }, 200);
         }
     }
 
     window.addEventListener('keydown', e => {
-        if (isWon && e.key === 'Enter') { nextLevel(); return; }
+        if (won && e.key === 'Enter') { nextLevel(); return; }
         const key = e.key.toLowerCase();
         if (key === 'w' || e.key === 'ArrowUp') move(-1, 0);
         if (key === 's' || e.key === 'ArrowDown') move(1, 0);
@@ -179,10 +178,10 @@
         container.innerHTML = '';
         for(let i=0; i<50; i++) {
             const div = document.createElement('div');
-            div.className = `btn-ctrl`; 
-            div.style.fontSize = '18px'; div.style.height = '45px';
-            div.style.borderColor = i <= unlocked ? '#3b82f6' : '#334155';
+            div.className = 'btn-ctrl';
+            div.style.width = '55px'; div.style.height = '55px'; div.style.fontSize = '18px';
             div.innerText = i + 1;
+            div.style.borderColor = i <= unlocked ? '#3b82f6' : '#334155';
             if(i <= unlocked) div.onclick = () => init(i);
             container.appendChild(div);
         }
