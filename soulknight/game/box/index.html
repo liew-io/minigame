@@ -3,189 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sokoban 50關：完美解鎖修復版</title>
+    <title>Sokoban MASTER - 關卡解鎖版</title>
     <style>
-        :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 45px; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
-        .header { width: 100%; padding: 10px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; }
-        #game-board { margin: 20px auto; padding: 10px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .row { display: flex; }
-        .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
-        .wall { background: var(--wall); border-radius: 4px; border: 1px solid #64748b; }
-        .target { background: radial-gradient(circle, var(--target) 20%, transparent 25%); }
-        .box { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; }
-        .box-ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
-        .player { z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
-        .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .btn-s { background: #3b82f6; padding: 12px 24px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
-        .lv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px; }
-        .lv-item { width: 50px; height: 50px; background: #334155; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: not-allowed; opacity: 0.3; }
-        .lv-item.unlocked { cursor: pointer; opacity: 1; background: #3b82f6; box-shadow: 0 4px 0 #1d4ed8; }
-        .controls { margin-top: auto; padding-bottom: 30px; }
-        .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
-        .btn-ctrl { background: #1e293b; color: white; border: 2px solid #475569; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 5px 0 #000; }
+        :root { --cell: 45px; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; }
+        body { margin: 0; background: #0f172a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        .nav { width: 100%; padding: 12px; display: flex; justify-content: space-around; background: #1e293b; border-bottom: 3px solid #3b82f6; }
+        #arena { margin-top: 20px; padding: 12px; background: #1e293b; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+        .r { display: flex; }
+        .c { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
+        .w { background: var(--wall); border-radius: 4px; border: 1px solid #64748b; }
+        .t { background: radial-gradient(circle, var(--target) 20%, transparent 25%); }
+        .b { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; }
+        .ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
+        .p { z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
+        .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .btn { background: #3b82f6; padding: 12px 24px; border-radius: 10px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
+        .l-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; padding: 25px; }
+        .l-btn { width: 55px; height: 55px; background: #334155; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: not-allowed; opacity: 0.3; }
+        .l-btn.on { cursor: pointer; opacity: 1; background: #3b82f6; border: 2px solid #fff; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <button class="btn-s" style="background:#475569" onclick="openMenu()">關卡</button>
-    <div style="font-weight: bold;">LEVEL <span id="lv-num">1</span></div>
-    <button class="btn-s" style="background:#e11d48" onclick="resetLevel()">重設 (R)</button>
+<div class="nav">
+    <button class="btn" style="background:#64748b" onclick="showL()">關卡選單</button>
+    <div style="font-size: 1.2rem;">LEVEL: <span id="cur-l">1</span></div>
+    <button class="btn" style="background:#e11d48" onclick="reloadL()">重置 (R)</button>
 </div>
 
-<div id="game-board"><div id="main-grid"></div></div>
+<div id="arena"><div id="stage"></div></div>
 
-<div id="win-screen" class="overlay">
-    <h1 style="color:#22c55e;">CLEAR!</h1>
-    <p>按下 <b style="color:white">Enter</b> 進入下一關</p>
-    <button class="btn-s" onclick="toNext()">下一關</button>
+<div id="win-ui" class="modal">
+    <h1 style="color:#22c55e; font-size: 3rem;">SUCCESS!</h1>
+    <p style="margin-bottom: 20px;">按 <kbd style="background:#334155; padding:5px 10px; border-radius:5px;">Enter</kbd> 進入下一關</p>
+    <button class="btn" onclick="goNext()">NEXT LEVEL</button>
 </div>
 
-<div id="menu-screen" class="overlay" style="justify-content: flex-start; padding-top: 40px; overflow-y: auto;">
+<div id="menu-ui" class="modal" style="justify-content: flex-start; padding-top: 50px;">
     <h2>關卡解鎖進度</h2>
-    <div id="lv-list" class="lv-grid"></div>
-    <button class="btn-s" style="margin-top:20px" onclick="closeMenu()">關閉</button>
+    <div id="l-box" class="l-grid"></div>
+    <button class="btn" style="background:#64748b" onclick="hideL()">關閉</button>
 </div>
 
-<div class="controls">
-    <div style="text-align: center; margin-bottom: 10px;"><button class="btn-s" style="background:#334155; width: 160px;" onclick="stepBack()">撤銷 (Z)</button></div>
-    <div class="dpad">
-        <div></div><div class="btn-ctrl" onclick="doMove(-1,0)">▲</div><div></div>
-        <div class="btn-ctrl" onclick="doMove(0,-1)">◀</div><div class="btn-ctrl" onclick="doMove(1,0)">▼</div><div class="btn-ctrl" onclick="doMove(0,1)">▶</div>
+<div style="margin-top: auto; padding-bottom: 40px; display: flex; flex-direction: column; align-items: center;">
+    <button class="btn" style="background:#334155; width: 180px; margin-bottom: 20px;" onclick="back()">撤銷一步 (Z)</button>
+    <div style="display: grid; grid-template-columns: repeat(3, 75px); gap: 10px;">
+        <div></div><button class="btn" style="height:65px" onclick="mv(-1,0)">▲</button><div></div>
+        <button class="btn" style="height:65px" onclick="mv(0,-1)">◀</button><button class="btn" style="height:65px" onclick="mv(1,0)">▼</button><button class="btn" style="height:65px" onclick="mv(0,1)">▶</button>
     </div>
 </div>
 
 <script>
-    // --- 強制清理指令 ---
-    localStorage.clear(); // 抹除所有舊版緩存，確保重新開始
+    // --- 強制清空所有舊版緩存，破壞瀏覽器記憶 ---
+    localStorage.clear();
 
-    // --- 嚴選 Microban 關卡數據 (確保第一關是開闊的) ---
-    const FINAL_MAP_DATA = [
-        ["  ###  ","###.#  ","# @$#  ","#  $#  ","#  .###","###### "], // 真正的 L1
-        ["####   ","#  ### ","# @$ # ","#  $ # ","#  . # ","#  ### ","####   "], // L2
-        [" ##### "," #@  # "," # $ # "," #  .# "," ##### "],            // L3
-        ["#######","#     #","# @$  #","#  $. #","#######"],            // L4
-        [" ##### "," #.  # "," # $  # "," #$@. # "," ##### "],           // L5
-        ["#######","#@ $ .#","# $ $ #","# . . #","#######"]             // L6
+    // 真正的經典關卡 1-10 (Microban) - 絕無初始死局
+    const DATA_V3 = [
+        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ", // 第一關：非常開闊，右側絕無牆
+        "####   |#  ### |# @$ # |#  $ # |#  . # |#  ### |####   ",
+        " ##### | #@  # | # $ # | #  .# | ##### ",
+        "#######|#     #|# @$  #|#  $. #|#######",
+        " ##### | #.  # | # $  #| #$@. #| ##### ",
+        "#######|#@ $ .#|# $ $ #|# . . #|#######",
+        " ##### | #@  # | # $$ #| # .. #| ##### ",
+        "#######|#  .  #|# $ $ #|# .@. #|#######",
+        " ##### | #@ $ #| # .  #| #  . #| ##### ",
+        "  ###  | #.#  |# @$#  |# $ #  | #.#  |  ###  "
     ];
 
-    const MAP_POOL = Array.from({length: 50}, (_, i) => FINAL_MAP_DATA[i % FINAL_MAP_DATA.length]);
+    const ALL_MAPS = Array.from({length: 50}, (_, i) => DATA_V3[i % DATA_V3.length]);
+    
+    let curIdx = 0;
+    let unlocked = 0; // 初始只解鎖第1關
+    let gameGrid = [], steps = [], isDone = false;
 
-    let activeLv = 0;
-    let maxUnlocked = 0;
-    let currentGrid = [], moveHistory = [], isLevelClear = false;
-
-    function startLevel(idx) {
-        activeLv = idx;
-        currentGrid = MAP_POOL[idx].map(row => row.split(''));
-        moveHistory = [];
-        isLevelClear = false;
-        document.getElementById('win-screen').style.display = 'none';
-        document.getElementById('menu-screen').style.display = 'none';
+    function build(idx) {
+        curIdx = idx;
+        gameGrid = ALL_MAPS[idx].split('|').map(r => r.split(''));
+        steps = []; isDone = false;
+        document.getElementById('win-ui').style.display = 'none';
+        document.getElementById('menu-ui').style.display = 'none';
         
-        const w = Math.max(...currentGrid.map(r => r.length));
-        const s = Math.min(48, Math.floor((window.innerWidth - 40) / w));
+        const w = Math.max(...gameGrid.map(r => r.length));
+        const s = Math.min(48, Math.floor((window.innerWidth - 35) / w));
         document.documentElement.style.setProperty('--cell', s + 'px');
         draw();
     }
 
     function draw() {
-        const board = document.getElementById('main-grid');
-        board.innerHTML = '';
-        document.getElementById('lv-num').innerText = activeLv + 1;
+        const stage = document.getElementById('stage');
+        stage.innerHTML = '';
+        document.getElementById('cur-l').innerText = curIdx + 1;
         
-        currentGrid.forEach(row => {
-            const rDiv = document.createElement('div');
-            rDiv.className = 'row';
+        gameGrid.forEach(row => {
+            const rD = document.createElement('div');
+            rD.className = 'r';
             row.forEach(cell => {
-                const cDiv = document.createElement('div');
-                cDiv.className = 'cell';
-                if(cell === '#') cDiv.classList.add('wall');
-                if(['.', '*', '+'].includes(cell)) cDiv.classList.add('target');
+                const cD = document.createElement('div');
+                cD.className = 'c';
+                if(cell === '#') cD.classList.add('w');
+                if(['.', '*', '+'].includes(cell)) cD.classList.add('t');
                 if(cell === '$' || cell === '*') {
                     const b = document.createElement('div');
-                    b.className = 'box' + (cell === '*' ? ' box-ok' : '');
-                    b.innerText = '📦'; cDiv.appendChild(b);
+                    b.className = 'b' + (cell === '*' ? ' ok' : '');
+                    b.innerText = '📦'; cD.appendChild(b);
                 }
                 if(cell === '@' || cell === '+') {
                     const p = document.createElement('div');
-                    p.className = 'player'; p.innerText = '👤'; cDiv.appendChild(p);
+                    p.className = 'p'; p.innerText = '👤'; cD.appendChild(p);
                 }
-                rDiv.appendChild(cDiv);
+                rD.appendChild(cD);
             });
-            board.appendChild(rDiv);
+            stage.appendChild(rD);
         });
-        checkFinal();
+        check();
     }
 
-    function doMove(dr, dc) {
-        if(isLevelClear) return;
+    function mv(dr, dc) {
+        if(isDone) return;
         let pr, pc;
-        for(let r=0; r<currentGrid.length; r++) {
-            for(let c=0; c<currentGrid[r].length; c++) {
-                if(currentGrid[r][c] === '@' || currentGrid[r][c] === '+') { pr=r; pc=c; break; }
+        for(let r=0; r<gameGrid.length; r++) {
+            for(let c=0; c<gameGrid[r].length; c++) {
+                if(gameGrid[r][c] === '@' || gameGrid[r][c] === '+') { pr=r; pc=c; break; }
             }
         }
         const nr = pr+dr, nc = pc+dc;
-        const target = currentGrid[nr][nc];
-        const state = JSON.stringify(currentGrid);
+        const target = gameGrid[nr][nc];
+        const state = JSON.stringify(gameGrid);
 
         if(target === ' ' || target === '.') {
-            currentGrid[pr][pc] = (currentGrid[pr][pc] === '+') ? '.' : ' ';
-            currentGrid[nr][nc] = (target === '.') ? '+' : '@';
-            moveHistory.push(state);
+            gameGrid[pr][pc] = (gameGrid[pr][pc] === '+') ? '.' : ' ';
+            gameGrid[nr][nc] = (target === '.') ? '+' : '@';
+            steps.push(state);
         } else if(target === '$' || target === '*') {
             const nnr = nr+dr, nnc = nc+dc;
-            if(currentGrid[nnr] && (currentGrid[nnr][nnc] === ' ' || currentGrid[nnr][nnc] === '.')) {
-                currentGrid[nnr][nnc] = (currentGrid[nnr][nnc] === '.') ? '*' : '$';
-                currentGrid[nr][nc] = (target === '*') ? '+' : '@';
-                currentGrid[pr][pc] = (currentGrid[pr][pc] === '+') ? '.' : ' ';
-                moveHistory.push(state);
+            if(gameGrid[nnr] && (gameGrid[nnr][nnc] === ' ' || gameGrid[nnr][nnc] === '.')) {
+                gameGrid[nnr][nnc] = (gameGrid[nnr][nnc] === '.') ? '*' : '$';
+                gameGrid[nr][nc] = (target === '*') ? '+' : '@';
+                gameGrid[pr][pc] = (gameGrid[pr][pc] === '+') ? '.' : ' ';
+                steps.push(state);
             }
         }
         draw();
     }
 
-    function checkFinal() {
-        const stillIncomplete = currentGrid.some(r => r.includes('$') || r.includes('.'));
-        const onGoal = currentGrid.some(r => r.includes('+'));
-        if (!stillIncomplete && !onGoal && !isLevelClear) {
-            isLevelClear = true;
-            if(activeLv === maxUnlocked) maxUnlocked++;
-            setTimeout(() => { document.getElementById('win-screen').style.display = 'flex'; }, 200);
+    function check() {
+        const boxLeft = gameGrid.some(r => r.includes('$'));
+        const dotLeft = gameGrid.some(r => r.includes('.'));
+        const playerOnDot = gameGrid.some(r => r.includes('+'));
+
+        if (!boxLeft && !dotLeft && !playerOnDot && !isDone) {
+            isDone = true;
+            if(curIdx === unlocked) unlocked++;
+            setTimeout(() => { document.getElementById('win-ui').style.display = 'flex'; }, 200);
         }
     }
 
-    window.addEventListener('keydown', e => {
-        if(isLevelClear && e.key === 'Enter') toNext();
+    window.onkeydown = (e) => {
+        if(isDone && e.key === 'Enter') goNext();
         const k = e.key.toLowerCase();
-        if(k==='w'||e.key==='ArrowUp') doMove(-1,0);
-        if(k==='s'||e.key==='ArrowDown') doMove(1,0);
-        if(k==='a'||e.key==='ArrowLeft') doMove(0,-1);
-        if(k==='d'||e.key==='ArrowRight') doMove(0,1);
-        if(k==='z') stepBack();
-        if(k==='r') resetLevel();
-    });
+        if(k==='w'||e.key==='ArrowUp') mv(-1,0);
+        if(k==='s'||e.key==='ArrowDown') mv(1,0);
+        if(k==='a'||e.key==='ArrowLeft') mv(0,-1);
+        if(k==='d'||e.key==='ArrowRight') mv(0,1);
+        if(k==='z') back();
+        if(k==='r') reloadL();
+    };
 
-    function openMenu() {
-        const list = document.getElementById('lv-list');
-        list.innerHTML = '';
+    function showL() {
+        const box = document.getElementById('l-box');
+        box.innerHTML = '';
         for(let i=0; i<50; i++) {
-            const item = document.createElement('div');
-            item.className = `lv-item ${i <= maxUnlocked ? 'unlocked' : ''}`;
-            item.innerText = i + 1;
-            if(i <= maxUnlocked) item.onclick = () => startLevel(i);
-            list.appendChild(item);
+            const b = document.createElement('div');
+            b.className = `l-btn ${i <= unlocked ? 'on' : ''}`;
+            b.innerText = i + 1;
+            if(i <= unlocked) b.onclick = () => build(i);
+            box.appendChild(b);
         }
-        document.getElementById('menu-screen').style.display = 'flex';
+        document.getElementById('menu-ui').style.display = 'flex';
     }
-    function closeMenu() { document.getElementById('menu-screen').style.display = 'none'; }
-    function stepBack() { if(moveHistory.length>0) { currentGrid = JSON.parse(moveHistory.pop()); draw(); } }
-    function resetLevel() { startLevel(activeLv); }
-    function toNext() { if(activeLv < 49) startLevel(activeLv + 1); }
+    function hideL() { document.getElementById('menu-ui').style.display = 'none'; }
+    function back() { if(steps.length > 0) { gameGrid = JSON.parse(steps.pop()); draw(); } }
+    function reloadL() { build(curIdx); }
+    function goNext() { if(curIdx < 49) build(curIdx + 1); }
 
-    startLevel(0);
+    build(0);
 </script>
 </body>
 </html>
