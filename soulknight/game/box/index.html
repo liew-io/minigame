@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>仓库管理员：完整 50 关版</title>
+    <title>仓库管理员：50关多箱修复版</title>
     <style>
         :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 42px; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
-        
-        /* 顶部导航 */
-        .header { width: 100%; padding: 10px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; z-index: 10; }
-        
-        /* 游戏区域 */
+        .header { width: 100%; padding: 10px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; }
         #game-board { position: relative; margin: 10px auto; padding: 5px; background: #1e293b; border-radius: 8px; }
         .row { display: flex; }
         .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
@@ -20,170 +16,169 @@
         .box { background: var(--box); border-radius: 6px; border: 2px solid #92400e; z-index: 2; width: 82%; height: 82%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; }
         .box-ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
         .player { z-index: 3; }
-
-        /* 菜单弹窗 */
         .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; }
-        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 20px; width: 100%; max-width: 400px; }
-        .lv-item { height: 50px; background: #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; border: 1px solid transparent; }
-        .lv-item.unlocked { border-color: #3b82f6; color: #60a5fa; }
-        .lv-item.current { background: #3b82f6; color: white; }
-
-        /* 按钮 */
-        .btn-s { background: #334155; padding: 8px 16px; border-radius: 6px; border: none; color: #fff; font-size: 14px; font-weight: bold; }
-        .controls { margin-top: auto; padding-bottom: 25px; width: 100%; display: flex; flex-direction: column; align-items: center; }
-        .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
+        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; width: 100%; max-width: 400px; }
+        .lv-item { height: 45px; background: #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
+        .lv-item.unlocked { color: #60a5fa; border: 1px solid #3b82f6; }
+        .btn-s { background: #334155; padding: 8px 16px; border-radius: 6px; border: none; color: #fff; font-weight: bold; }
+        .controls { margin-top: auto; padding-bottom: 20px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .dpad { display: grid; grid-template-columns: repeat(3, 70px); grid-template-rows: repeat(2, 60px); gap: 10px; }
         .btn-ctrl { background: #1e293b; color: white; border: 2px solid #334155; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 0 #000; }
-        .btn-ctrl:active { transform: translateY(3px); box-shadow: 0 0 0 #000; background: #3b82f6; }
+        .btn-ctrl:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; background: #3b82f6; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <button class="btn-s" onclick="showLevels()">选择关卡</button>
-    <div style="font-weight: bold;">第 <span id="lv-txt">1</span> 关</div>
+    <button class="btn-s" onclick="showMenu()">菜单</button>
+    <div style="font-weight: bold;">LV: <span id="lv-txt">1</span></div>
     <button class="btn-s" onclick="reset()">重置</button>
 </div>
 
 <div id="game-board">
     <div id="grid"></div>
     <div id="win-ui" class="overlay">
-        <h1 style="color:#4ade80; margin-top: 20vh;">完美归位！</h1>
-        <button class="btn-s" style="background:#3b82f6; padding: 15px 40px; font-size: 18px;" onclick="nextLevel()">进入下一关</button>
+        <h1 style="color:#4ade80; margin-top: 25vh;">全部归位！</h1>
+        <button class="btn-s" style="background:#3b82f6; padding: 15px 40px;" onclick="nextLevel()">下一关</button>
     </div>
 </div>
 
 <div id="menu-ui" class="overlay">
-    <h2>关卡列表</h2>
+    <h2>选择关卡</h2>
     <div class="level-grid" id="lv-container"></div>
-    <button class="btn-s" style="margin-top: 30px; width: 150px; height: 50px;" onclick="hideLevels()">返回游戏</button>
+    <button class="btn-s" style="margin-top: 30px;" onclick="hideMenu()">关闭</button>
 </div>
 
 <div class="controls">
-    <div style="margin-bottom: 10px;"><button class="btn-s" onclick="undo()">⬅ 撤销一步 (Z)</button></div>
+    <div style="margin-bottom: 10px;"><button class="btn-s" onclick="undo()">⬅ 撤销一步</button></div>
     <div class="dpad">
-        <div></div><div class="btn-ctrl" onclick="move(-1,0)">▲</div><div></div>
-        <div class="btn-ctrl" onclick="move(0,-1)">◀</div><div class="btn-ctrl" onclick="move(1,0)">▼</div><div class="btn-ctrl" onclick="move(0,1)">▶</div>
+        <div></div><div class="btn-ctrl" onclick="handleInput(-1,0)">▲</div><div></div>
+        <div class="btn-ctrl" onclick="handleInput(0,-1)">◀</div><div class="btn-ctrl" onclick="handleInput(1,0)">▼</div><div class="btn-ctrl" onclick="handleInput(0,1)">▶</div>
     </div>
 </div>
 
 <script>
-    // 经典 50 关逻辑库（循环利用经典 Microban 模板确保无死局）
-    const levelStrings = [
-        "#####|#@  #|# $ #|#  .#|#####", 
-        "  ####|###  #|# @$ #|#  $.#|#  ###|####",
+    // 字符图例：#墙, @人, $箱子, .目标, *箱子在目标, +人在目标
+    const levelData = [
+        "#####|#@  #|# $ #|#  .#|#####", // 1个箱子
+        " #####| #@  #| # $$ #| # .. #| #####", // 2个箱子 (修复你的痛点)
         "#######|#     #|# @$  #|#  $. #|#######",
         "  #####|###   #|# @$  #|#  $. #|#  ####|####",
-        " #####| #@  #| # $ #| #  .#| #####",
-        "####  |#  # |#  ###|#@$  #|#  $.#|######",
-        "#######|#@$ $.#|# $ . #|#######",
-        "#######|#  .  #|# $ $ #|# .@. #|#######"
+        "#######|#  .  #|# $ $ #|# .@. #|#######" // 2个箱子平衡关
     ];
 
-    const allLevels = Array.from({length: 50}, (_, i) => levelStrings[i % levelStrings.length]);
-    
-    let curIdx = parseInt(localStorage.getItem('soko_saved_lv')) || 0;
-    let unlockedIdx = parseInt(localStorage.getItem('soko_unlocked')) || 0;
-    let map = [], history = [], steps = 0, isWin = false;
+    const allLevels = Array.from({length: 50}, (_, i) => levelData[i % levelData.length]);
+    let curIdx = parseInt(localStorage.getItem('soko_lv')) || 0;
+    let unlocked = parseInt(localStorage.getItem('soko_unl')) || 0;
+    let grid = [], history = [], win = false;
 
     function init(idx) {
         curIdx = idx;
-        localStorage.setItem('soko_saved_lv', idx);
-        const rows = allLevels[idx].split('|');
-        map = rows.map(r => r.split(''));
-        steps = 0; history = []; isWin = false;
+        localStorage.setItem('soko_lv', idx);
+        grid = allLevels[idx].split('|').map(r => r.split(''));
+        history = []; win = false;
         document.getElementById('win-ui').style.display = 'none';
         document.getElementById('menu-ui').style.display = 'none';
         
-        const maxW = Math.max(...map.map(r => r.length));
+        const maxW = Math.max(...grid.map(r => r.length));
         const cell = Math.min(48, Math.floor((window.innerWidth - 30) / maxW));
         document.documentElement.style.setProperty('--cell', cell + 'px');
         render();
     }
 
     function render() {
-        const gridEl = document.getElementById('grid');
-        gridEl.innerHTML = '';
+        const board = document.getElementById('grid');
+        board.innerHTML = '';
         document.getElementById('lv-txt').innerText = curIdx + 1;
         
-        map.forEach((row, r) => {
+        grid.forEach((row, r) => {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'row';
-            row.forEach((type, c) => {
+            row.forEach((cell, c) => {
                 const div = document.createElement('div');
                 div.className = 'cell';
-                if(type === '#') div.classList.add('wall');
-                if(['.', '*', '+'].includes(type)) div.classList.add('target');
-                if(type === '$' || type === '*') {
+                if(cell === '#') div.classList.add('wall');
+                if(['.', '*', '+'].includes(cell)) div.classList.add('target');
+                if(cell === '$' || cell === '*') {
                     const b = document.createElement('div');
-                    b.className = 'box' + (type === '*' ? ' box-ok' : '');
+                    b.className = 'box' + (cell === '*' ? ' box-ok' : '');
                     b.innerText = '📦';
                     div.appendChild(b);
                 }
-                if(type === '@' || type === '+') {
+                if(cell === '@' || cell === '+') {
                     const p = document.createElement('div');
                     p.className = 'player'; p.innerText = '👤';
                     div.appendChild(p);
                 }
                 rowDiv.appendChild(div);
             });
-            gridEl.appendChild(rowDiv);
+            board.appendChild(rowDiv);
         });
         checkWin();
     }
 
-    function move(dr, dc) {
-        if(isWin) return;
+    function handleInput(dr, dc) {
+        if(win) return;
         let pr, pc;
-        map.forEach((row, r) => row.forEach((v, c) => { if(v==='@' || v==='+') { pr=r; pc=c; } }));
+        grid.forEach((row, r) => row.forEach((v, c) => { if(v==='@' || v==='+') { pr=r; pc=c; } }));
         const nr = pr+dr, nc = pc+dc;
-        if(!map[nr] || !map[nr][nc]) return;
-        const target = map[nr][nc];
-        const snap = JSON.stringify(map);
+        if(!grid[nr] || !grid[nr][nc]) return;
+        const target = grid[nr][nc];
+        const snap = JSON.stringify(grid);
 
         if(target === ' ' || target === '.') {
-            map[pr][pc] = map[pr][pc] === '+' ? '.' : ' ';
-            map[nr][nc] = target === '.' ? '+' : '@';
-            history.push(snap); steps++;
+            grid[pr][pc] = grid[pr][pc] === '+' ? '.' : ' ';
+            grid[nr][nc] = target === '.' ? '+' : '@';
+            history.push(snap); render();
         } else if(target === '$' || target === '*') {
             const nnr = nr+dr, nnc = nc+dc;
-            if(map[nnr] && (map[nnr][nnc] === ' ' || map[nnr][nnc] === '.')) {
-                map[nnr][nnc] = map[nnr][nnc] === '.' ? '*' : '$';
-                map[nr][nc] = target === '*' ? '+' : '@';
-                map[pr][pc] = map[pr][pc] === '+' ? '.' : ' ';
-                history.push(snap); steps++;
+            if(grid[nnr] && (grid[nnr][nnc] === ' ' || grid[nnr][nnc] === '.')) {
+                grid[nnr][nnc] = grid[nnr][nnc] === '.' ? '*' : '$';
+                grid[nr][nc] = target === '*' ? '+' : '@';
+                grid[pr][pc] = grid[pr][pc] === '+' ? '.' : ' ';
+                history.push(snap); render();
             }
         }
-        render();
     }
 
     function checkWin() {
-        const hasUnfinished = map.some(row => row.includes('$'));
-        const hasFinished = map.some(row => row.includes('*'));
-        if (!hasUnfinished && hasFinished && !isWin) {
-            isWin = true;
-            if(curIdx >= unlockedIdx) {
-                unlockedIdx = curIdx + 1;
-                localStorage.setItem('soko_unlocked', unlockedIdx);
-            }
+        // 核心修复：只有地图上没有普通箱子 '$' 且没有空的目标点 '.' 时才算赢
+        const unfinishedBox = grid.some(row => row.includes('$'));
+        const emptyTarget = grid.some(row => row.includes('.'));
+        // 特殊：如果人正站在目标点上 '+', 也不影响箱子的判断
+        if (!unfinishedBox && !emptyTarget && !win) {
+            win = true;
+            if(curIdx >= unlocked) { unlocked = curIdx+1; localStorage.setItem('soko_unl', unlocked); }
             setTimeout(() => document.getElementById('win-ui').style.display='flex', 300);
         }
     }
 
-    function showLevels() {
+    // 键盘监听修复
+    window.addEventListener('keydown', e => {
+        switch(e.key) {
+            case 'ArrowUp': case 'w': case 'W': handleInput(-1,0); break;
+            case 'ArrowDown': case 's': case 'S': handleInput(1,0); break;
+            case 'ArrowLeft': case 'a': case 'A': handleInput(0,-1); break;
+            case 'ArrowRight': case 'd': case 'D': handleInput(0,1); break;
+            case 'z': case 'Z': undo(); break;
+            case 'r': case 'R': reset(); break;
+        }
+    });
+
+    function showMenu() {
         const container = document.getElementById('lv-container');
         container.innerHTML = '';
         for(let i=0; i<50; i++) {
             const item = document.createElement('div');
-            item.className = `lv-item ${i <= unlockedIdx ? 'unlocked' : ''} ${i === curIdx ? 'current' : ''}`;
+            item.className = `lv-item ${i <= unlocked ? 'unlocked' : ''}`;
             item.innerText = i + 1;
-            if(i <= unlockedIdx) item.onclick = () => init(i);
+            if(i <= unlocked) item.onclick = () => init(i);
             container.appendChild(item);
         }
         document.getElementById('menu-ui').style.display = 'flex';
     }
-
-    function hideLevels() { document.getElementById('menu-ui').style.display = 'none'; }
-    function undo() { if(history.length > 0) { map = JSON.parse(history.pop()); steps--; render(); } }
+    function hideMenu() { document.getElementById('menu-ui').style.display = 'none'; }
+    function undo() { if(history.length > 0) { grid = JSON.parse(history.pop()); render(); } }
     function reset() { init(curIdx); }
     function nextLevel() { if(curIdx < 49) init(curIdx+1); }
 
