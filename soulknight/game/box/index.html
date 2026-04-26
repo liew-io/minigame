@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>推箱子经典50关 - 完美可解版 (已修复所有死局)</title>
+    <title>推箱子经典50关 - 完美可解版 | 回车下一关</title>
     <style>
         * {
             user-select: none;
@@ -165,12 +165,22 @@
             text-align: center;
         }
 
+        .shortcut-hint {
+            font-size: 0.7rem;
+            background: #2c2c2c;
+            padding: 4px 12px;
+            border-radius: 30px;
+            color: #ffd966;
+            margin-left: 8px;
+        }
+
         @media (max-width: 560px) {
             .game-container { padding: 12px 15px 18px 15px; }
             .arrow { width: 48px; height: 48px; font-size: 1.8rem; }
             .status, .score-box, .level-box { font-size: 0.7rem; padding: 4px 12px; }
             button { padding: 4px 14px; font-size: 0.75rem; }
             .level-dropdown { font-size: 0.8rem; padding: 5px 8px; }
+            .shortcut-hint { font-size: 0.6rem; }
         }
 
         .victory-message {
@@ -210,6 +220,7 @@
                 <button id="goToLevelBtn">前往</button>
                 <button id="prevBtn">◀</button>
                 <button id="nextBtn">▶</button>
+                <span class="shortcut-hint">⏎ 回车下一关</span>
             </div>
         </div>
         <div id="victoryToast" style="text-align:center; min-height: 44px;"></div>
@@ -220,7 +231,6 @@
     (function() {
         // ======================= 50个精心设计的关卡 (全部验证可达，无死局) =======================
         // 数值: 0空地 1墙 2玩家 3箱子 4目标点 5玩家在目标 6箱子在目标
-        // 核心原则: 所有目标点与箱子在同一连通区域，且无初始死锁，每个箱子都能推到目标
         
         const LEVELS = [];
         
@@ -296,7 +306,7 @@
             [1,1,1,1,1,1,1,1]
         ];
         
-        // ----- 第7关 (修复版: 原死局已修复，现为4箱完全可解) -----
+        // ----- 第7关 (4箱，修复死局，完全可解) -----
         LEVELS[6] = [
             [1,1,1,1,1,1,1,1],
             [1,0,4,0,0,0,0,1],
@@ -373,26 +383,21 @@
             while(!created && attempts < 40) {
                 attempts++;
                 let newMap = Array(8).fill().map(()=>Array(8).fill(0));
-                // 围墙
                 for(let i=0;i<8;i++){ newMap[0][i]=1; newMap[7][i]=1; newMap[i][0]=1; newMap[i][7]=1; }
-                // 随机内部墙 (3-5个，避免过度拥挤)
                 let wallCount = 3 + Math.floor(Math.random()*3);
                 for(let w=0;w<wallCount;w++){
                     let wx = 1+Math.floor(Math.random()*6);
                     let wy = 1+Math.floor(Math.random()*6);
                     if(newMap[wy][wx] === 0) newMap[wy][wx] = 1;
                 }
-                // 箱子数量3~5个
                 let boxCount = 3 + (lvl % 3);
                 if(boxCount>5) boxCount=5;
                 let targetCount = boxCount;
                 
-                // 收集所有可行走单元格
                 let freeCells = [];
                 for(let i=1;i<=6;i++) for(let j=1;j<=6;j++) if(newMap[i][j] !== 1) freeCells.push([j,i]);
                 if(freeCells.length < boxCount*2+3) continue;
                 
-                // 随机打乱
                 for(let i=freeCells.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [freeCells[i],freeCells[j]]=[freeCells[j],freeCells[i]]; }
                 
                 let boxPos = freeCells.slice(0, boxCount);
@@ -400,14 +405,13 @@
                 let playerPos = freeCells[boxCount+targetCount];
                 if(!playerPos) playerPos = freeCells[freeCells.length-1];
                 
-                // 构建地图临时用于连通性检测
+                // 连通性检测
                 let testMap = Array(8).fill().map(()=>Array(8).fill(1));
                 for(let i=0;i<8;i++) for(let j=0;j<8;j++) if(newMap[i][j] !== 1) testMap[i][j] = 0;
                 for(let b of boxPos) testMap[b[1]][b[0]] = 0;
                 for(let t of targetPos) testMap[t[1]][t[0]] = 0;
                 testMap[playerPos[1]][playerPos[0]] = 0;
                 
-                // BFS检查所有箱子和目标是否在玩家可到达连通区域
                 let visited = Array(8).fill().map(()=>Array(8).fill(false));
                 let queue = [[playerPos[0], playerPos[1]]];
                 visited[playerPos[1]][playerPos[0]] = true;
@@ -427,7 +431,7 @@
                 for(let t of targetPos) if(!visited[t[1]][t[0]]) { allReachable=false; break; }
                 if(!allReachable) continue;
                 
-                // 防死局: 检查箱子是否一开始就卡在角落(非目标点)
+                // 防死局检测
                 let deadLock = false;
                 for(let b of boxPos) {
                     let x=b[0], y=b[1];
@@ -439,13 +443,11 @@
                         let downWall = (newMap[y+1][x] === 1);
                         if((leftWall && upWall) || (leftWall && downWall) || (rightWall && upWall) || (rightWall && downWall)) deadLock=true;
                         if((leftWall && rightWall) || (upWall && downWall)) deadLock=true;
-                        // 边缘死锁检测
                         if((x===1 && leftWall) || (x===6 && rightWall) || (y===1 && upWall) || (y===6 && downWall)) deadLock=true;
                     }
                 }
                 if(deadLock) continue;
                 
-                // 额外确保每个箱子至少有一个相邻空位可推
                 let allMovable = true;
                 for(let b of boxPos) {
                     let x=b[0], y=b[1];
@@ -462,7 +464,6 @@
                 }
                 if(!allMovable) continue;
                 
-                // 应用地图
                 for(let i=0;i<8;i++) for(let j=0;j<8;j++) if(newMap[i][j]!==1) newMap[i][j]=0;
                 for(let t of targetPos) newMap[t[1]][t[0]] = 4;
                 for(let b of boxPos) {
@@ -475,7 +476,6 @@
                 LEVELS[lvl] = newMap;
                 created = true;
             }
-            // 保底：如果生成失败，复制一个已有安全关卡并微调
             if(!LEVELS[lvl]) {
                 LEVELS[lvl] = JSON.parse(JSON.stringify(LEVELS[lvl-1]));
                 for(let i=1;i<7 && LEVELS[lvl];i++) {
@@ -484,7 +484,6 @@
                         if(LEVELS[lvl][i][j] === 0 && Math.random()>0.7 && LEVELS[lvl][i][j]!==2 && LEVELS[lvl][i][j]!==3) LEVELS[lvl][i][j]=4;
                     }
                 }
-                // 确保箱子与目标数相等
                 let bCount=0, tCount=0;
                 for(let i=0;i<8;i++) for(let j=0;j<8;j++) {
                     if(LEVELS[lvl][i][j]===3 || LEVELS[lvl][i][j]===6) bCount++;
@@ -499,7 +498,6 @@
             }
         }
         
-        // 最终确保每个关卡箱子数==目标数且玩家存在
         for(let idx=0;idx<LEVELS.length;idx++){
             let map=LEVELS[idx]; let boxCt=0,targetCt=0,hasPlayer=false;
             for(let i=0;i<8;i++) for(let j=0;j<8;j++){
@@ -536,7 +534,7 @@
         
         function loadUnlockedProgress() {
             try {
-                let saved = localStorage.getItem('sokoban_max_unlocked_fixed');
+                let saved = localStorage.getItem('sokoban_max_unlocked_enter');
                 if(saved !== null && !isNaN(parseInt(saved))) maxUnlocked = Math.min(parseInt(saved), LEVELS.length-1);
                 else maxUnlocked = 0;
             } catch(e) { maxUnlocked = 0; }
@@ -544,7 +542,7 @@
         }
         
         function saveUnlockedProgress() {
-            try { localStorage.setItem('sokoban_max_unlocked_fixed', maxUnlocked); } catch(e) {}
+            try { localStorage.setItem('sokoban_max_unlocked_enter', maxUnlocked); } catch(e) {}
         }
         
         function updateLevelSelector() {
@@ -582,6 +580,34 @@
             }
         }
         
+        // 核心功能：通关后自动进入下一关（如果存在且已解锁）
+        function autoGoToNextLevel() {
+            if(gameWin) {
+                if(currentLevelIdx + 1 < LEVELS.length && (currentLevelIdx + 1) <= maxUnlocked) {
+                    currentLevelIdx++;
+                    loadLevel(currentLevelIdx);
+                } else if(currentLevelIdx + 1 < LEVELS.length && (currentLevelIdx + 1) > maxUnlocked) {
+                    // 理论上通关后maxUnlocked已更新，此处做兜底
+                    if(currentLevelIdx === maxUnlocked - 1) {
+                        maxUnlocked = currentLevelIdx + 1;
+                        saveUnlockedProgress();
+                        updateLevelSelector();
+                        currentLevelIdx++;
+                        loadLevel(currentLevelIdx);
+                    } else {
+                        alert("🎯 即将进入下一关！");
+                        currentLevelIdx++;
+                        loadLevel(currentLevelIdx);
+                    }
+                } else {
+                    // 最后一关通关提示
+                    if(currentLevelIdx === LEVELS.length - 1) {
+                        alert("🎉 恭喜你完成了全部50关！你已是推箱子大师！ 🎉");
+                    }
+                }
+            }
+        }
+        
         function loadLevel(levelIndex) {
             const matrix = LEVELS[levelIndex];
             if(!matrix) return;
@@ -604,12 +630,11 @@
                 if(isOn && !b.onTarget){ b.onTarget=true; boxesOnTarget++; }
                 else if(!isOn && b.onTarget){ b.onTarget=false; boxesOnTarget--; }
             }
-            gameWin = (boxesOnTarget === targetCount && targetCount>0);
+            gameWin = false;  // 新关卡重置胜利状态
             updateRemainingDisplay();
-            showVictoryMessage(gameWin);
+            showVictoryMessage(false);
             document.getElementById('levelNum').innerText = (levelIndex+1);
             drawGame();
-            if(gameWin) checkAndUnlockNext();
         }
         
         function resetCurrentLevel() { loadLevel(currentLevelIdx); }
@@ -657,8 +682,10 @@
                     showVictoryMessage(true);
                     checkAndUnlockNext();
                     updateLevelSelector();
+                    drawGame();
+                } else {
+                    drawGame();
                 }
-                drawGame();
                 return true;
             } else {
                 player.x = nx; player.y = ny;
@@ -674,7 +701,7 @@
         
         function showVictoryMessage(win){
             const div = document.getElementById('victoryToast');
-            if(win) div.innerHTML = '<div class="victory-message">✨ 通关！下一关已解锁 ✨</div>';
+            if(win) div.innerHTML = '<div class="victory-message">✨ 通关！按回车键(Enter)自动进入下一关 ✨</div>';
             else div.innerHTML = '';
         }
         
@@ -724,12 +751,20 @@
             }
         }
         
-        function handleKey(e){
-            if(e.key === 'ArrowUp') tryMove(0,-1);
-            else if(e.key === 'ArrowDown') tryMove(0,1);
-            else if(e.key === 'ArrowLeft') tryMove(-1,0);
-            else if(e.key === 'ArrowRight') tryMove(1,0);
-            else if(e.key === 'r'||e.key === 'R') resetCurrentLevel();
+        function handleKey(e) {
+            // 方向键移动
+            if(e.key === 'ArrowUp') { e.preventDefault(); tryMove(0,-1); }
+            else if(e.key === 'ArrowDown') { e.preventDefault(); tryMove(0,1); }
+            else if(e.key === 'ArrowLeft') { e.preventDefault(); tryMove(-1,0); }
+            else if(e.key === 'ArrowRight') { e.preventDefault(); tryMove(1,0); }
+            else if(e.key === 'r' || e.key === 'R') { e.preventDefault(); resetCurrentLevel(); }
+            // 核心功能：回车键自动进入下一关（仅在胜利时有效）
+            else if(e.key === 'Enter') {
+                e.preventDefault();
+                if(gameWin) {
+                    autoGoToNextLevel();
+                }
+            }
         }
         
         function bindEvents(){
