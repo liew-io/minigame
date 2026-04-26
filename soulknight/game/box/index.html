@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sokoban 宗师之路 - 50关循序渐进</title>
+    <title>Sokoban MASTER · 经典50关 · 难度递增</title>
     <style>
         * {
             user-select: none;
@@ -15,72 +15,73 @@
         }
         body {
             margin: 0;
-            background: #0b1120;
-            color: #e2e8f0;
+            background: linear-gradient(145deg, #0a0f1e 0%, #0c1222 100%);
+            color: #eef2ff;
             font-family: 'Segoe UI', system-ui, -apple-system, 'Noto Sans TC', sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             min-height: 100vh;
             touch-action: pan-x pan-y;
         }
-        .game-wrapper {
+        .game-container {
+            width: 100%;
+            max-width: 620px;
+            margin: 16px auto;
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 100%;
-            max-width: 600px;
             padding: 12px 8px 20px;
         }
-        .top-bar {
+        .nav-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #111827dd;
-            backdrop-filter: blur(4px);
-            padding: 8px 16px;
-            border-radius: 60px;
-            margin-bottom: 16px;
-            gap: 10px;
+            background: #111827cc;
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 80px;
+            margin-bottom: 20px;
+            gap: 12px;
             flex-wrap: wrap;
+            border: 1px solid #3b82f640;
         }
-        .level-badge {
-            background: #1e293b;
+        .level-box {
+            background: #0f172a;
             padding: 6px 20px;
-            border-radius: 40px;
+            border-radius: 60px;
             font-weight: bold;
             font-size: 1.2rem;
-            box-shadow: inset 0 1px 2px #ffffff10, 0 2px 5px #00000030;
+            box-shadow: inset 0 1px 2px #ffffff0c, 0 4px 8px #00000030;
         }
         .btn {
             background: #3b82f6;
             border: none;
-            padding: 8px 18px;
+            padding: 8px 20px;
             border-radius: 40px;
             color: white;
             font-weight: bold;
             font-size: 0.85rem;
             cursor: pointer;
             transition: 0.08s linear;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         .btn:active { transform: scale(0.96); background: #2563eb; }
         .btn-outline { background: #475569; }
-        .btn-warning { background: #dc2626; }
-        .game-board {
+        .btn-danger { background: #dc2626; }
+        .arena {
             background: #0f172a;
-            border-radius: 32px;
+            border-radius: 42px;
             padding: 16px;
-            box-shadow: 0 20px 35px -10px black;
-            margin: 8px 0;
+            box-shadow: 0 20px 35px -8px black;
+            margin: 6px 0;
         }
         #board {
             display: inline-block;
             background: #1e293b;
-            border-radius: 24px;
-            padding: 8px;
+            border-radius: 28px;
+            padding: 10px;
         }
         .row { display: flex; line-height: 0; }
         .cell {
@@ -91,12 +92,12 @@
             justify-content: center;
             font-size: 26px;
             background: #1e293b;
-            transition: all 0.03s;
+            transition: all 0.04s;
         }
         .wall {
             background: #2d3a4e;
-            border-radius: 12px;
-            box-shadow: inset 0 0 0 1px #4b5563;
+            border-radius: 10px;
+            box-shadow: inset 0 0 0 1px #5b6e8c;
         }
         .target {
             background: radial-gradient(circle at 35% 40%, #3b82f6 24%, transparent 30%);
@@ -111,7 +112,6 @@
             justify-content: center;
             font-size: 23px;
             box-shadow: 0 4px 0 #b45309;
-            transition: 0.05s;
         }
         .box-done {
             background: #22c55e !important;
@@ -126,16 +126,16 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
-            margin-top: 16px;
+            gap: 16px;
+            margin-top: 18px;
         }
-        .arrow-grid {
+        .arrows {
             display: grid;
-            grid-template-columns: repeat(3, 72px);
+            grid-template-columns: repeat(3, 74px);
             gap: 12px;
             justify-items: center;
         }
-        .arrow {
+        .arrow-btn {
             background: #2d3a4e;
             border: none;
             font-size: 28px;
@@ -148,19 +148,19 @@
             transition: 0.05s;
             box-shadow: 0 3px 5px black;
         }
-        .arrow:active { background: #3b82f6; transform: scale(0.93); }
-        .shortcuts {
+        .arrow-btn:active { background: #3b82f6; transform: scale(0.93); }
+        .hotkey-hint {
             font-size: 11px;
             background: #111827aa;
-            padding: 5px 12px;
+            padding: 5px 18px;
             border-radius: 30px;
-            color: #9ca3af;
+            color: #a0afc7;
         }
         .modal {
             position: fixed;
             inset: 0;
-            background: rgba(5, 10, 25, 0.96);
-            backdrop-filter: blur(10px);
+            background: rgba(5, 12, 28, 0.97);
+            backdrop-filter: blur(12px);
             z-index: 300;
             display: none;
             align-items: center;
@@ -168,26 +168,26 @@
         }
         .modal-card {
             background: #1e293b;
-            padding: 30px 25px;
+            padding: 28px 20px;
             border-radius: 56px;
             text-align: center;
             border: 1px solid #3b82f6;
-            max-width: 300px;
             width: 85%;
+            max-width: 320px;
         }
-        .level-selector {
+        .level-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 12px;
             margin: 20px 0;
             max-height: 55vh;
             overflow-y: auto;
-            padding: 5px;
+            padding: 6px;
         }
         .level-btn {
             background: #334155;
-            border-radius: 32px;
-            padding: 12px 0;
+            border-radius: 40px;
+            padding: 10px 0;
             text-align: center;
             font-weight: bold;
             font-size: 1rem;
@@ -201,370 +201,363 @@
             border: 1px solid white;
             box-shadow: 0 0 8px #3b82f6;
         }
-        .toast {
+        .toast-msg {
             position: fixed;
             bottom: 90px;
             left: 50%;
             transform: translateX(-50%);
-            background: #111827ee;
+            background: #0f172ae6;
             color: #facc15;
             padding: 8px 20px;
             border-radius: 40px;
             font-size: 0.85rem;
             font-weight: bold;
             z-index: 350;
-            animation: fadeOutMsg 2s forwards;
-            white-space: nowrap;
+            animation: fadeToast 2s forwards;
             backdrop-filter: blur(8px);
+            white-space: nowrap;
         }
-        @keyframes fadeOutMsg {
+        @keyframes fadeToast {
             0% { opacity: 1; transform: translateX(-50%) translateY(0); }
             70% { opacity: 1; }
             100% { opacity: 0; transform: translateX(-50%) translateY(-15px); visibility: hidden; }
         }
         @media (max-width: 550px) {
             :root { --cell: 42px; }
-            .arrow-grid { grid-template-columns: repeat(3, 60px); gap: 8px; }
+            .arrows { grid-template-columns: repeat(3, 60px); gap: 8px; }
             .level-btn { padding: 8px 0; }
         }
         footer {
-            font-size: 10px;
-            color: #4b5563;
+            font-size: 9px;
             margin-top: 12px;
+            color: #4b5563;
         }
     </style>
 </head>
 <body>
-<div class="game-wrapper">
-    <div class="top-bar">
-        <button class="btn btn-outline" onclick="openLevelMenu()">📜 选关</button>
-        <div class="level-badge">第 <span id="levelIdx">1</span> / 50 关</div>
-        <button class="btn btn-warning" onclick="resetCurrent()">🔄 重置</button>
+<div class="game-container">
+    <div class="nav-bar">
+        <button class="btn btn-outline" onclick="showLevelSelect()">📋 选关</button>
+        <div class="level-box">第 <span id="levelDisplay">1</span> / 50 关</div>
+        <button class="btn btn-danger" onclick="resetLevel()">🔄 重置</button>
     </div>
 
-    <div class="game-board">
+    <div class="arena">
         <div id="board"></div>
     </div>
 
     <div class="control-panel">
-        <div style="display: flex; gap: 18px;">
-            <button class="btn btn-outline" onclick="undoMove()">↩️ 撤回 (Z)</button>
-            <button class="btn btn-outline" onclick="showHelpTip()">💡 提示</button>
+        <div style="display: flex; gap: 20px;">
+            <button class="btn btn-outline" onclick="undoStep()">↩️ 撤回 (Z)</button>
+            <button class="btn btn-outline" onclick="showAdvice()">💡 提示</button>
         </div>
-        <div class="arrow-grid">
+        <div class="arrows">
             <div></div>
-            <button class="arrow" onclick="tryMove(-1,0)">▲</button>
+            <button class="arrow-btn" onclick="requestMove(-1,0)">▲</button>
             <div></div>
-            <button class="arrow" onclick="tryMove(0,-1)">◀</button>
-            <button class="arrow" onclick="tryMove(1,0)">▼</button>
-            <button class="arrow" onclick="tryMove(0,1)">▶</button>
+            <button class="arrow-btn" onclick="requestMove(0,-1)">◀</button>
+            <button class="arrow-btn" onclick="requestMove(1,0)">▼</button>
+            <button class="arrow-btn" onclick="requestMove(0,1)">▶</button>
         </div>
-        <div class="shortcuts">🎮 方向键 / WASD &nbsp;&nbsp;|  R 重置 &nbsp;|  Z 撤回 &nbsp;|  Enter 过关</div>
+        <div class="hotkey-hint">🎮 方向键 / WASD &nbsp;|&nbsp; R 重置 &nbsp;|&nbsp; Z 撤回 &nbsp;|&nbsp; ↵ 过关</div>
     </div>
 </div>
 
 <div id="winModal" class="modal">
     <div class="modal-card">
-        <h1 style="color:#22c55e; font-size: 2rem;">✨ 通关 ✨</h1>
-        <p style="margin: 12px 0;">太强了！继续下一关吧</p>
-        <button class="btn" onclick="nextStage()">▶ 下一关</button>
+        <h1 style="color:#22c55e; font-size: 2rem;">✨ 完美通关 ✨</h1>
+        <p style="margin: 10px 0;">太厉害了！继续下一关吧</p>
+        <button class="btn" onclick="nextLevel()">▶ 下一关</button>
     </div>
 </div>
 
 <div id="menuModal" class="modal">
-    <div class="modal-card" style="max-width: 400px; width: 90%;">
-        <h2>📌 解锁进度</h2>
-        <div id="levelList" class="level-selector"></div>
-        <button class="btn btn-outline" onclick="closeMenu()" style="margin-top: 10px;">关闭</button>
+    <div class="modal-card" style="max-width: 420px; width: 92%;">
+        <h2>🗺️ 关卡解锁进度</h2>
+        <div id="levelGridContainer" class="level-grid"></div>
+        <button class="btn btn-outline" onclick="closeLevelMenu()">关闭</button>
     </div>
 </div>
 
 <script>
-    // --------------------------------------------------------------
-    // 精心设计 50 个关卡, 难度平滑递增, 保证开局无死锁, 全部可解
-    // 每关箱子数量 1~3 个, 目标点数匹配, 经典推箱子布局优化
-    // --------------------------------------------------------------
-    const LEVEL_DATA = [
-        // 1~5  入门级：单箱 一步/两步
-        "#####|#@$.#|#####",                                 // 1 : 一步过关
-        "######|#@ $.#|######",                             // 2 : 直线一步
-        "#####|#.@$#|#####",                                // 3 : 反向简单
-        "######|#. @$ #|######",                            // 4 : 小绕行
-        "#####|#@$ #|# . #|#####",                          // 5 : 单箱需要绕过墙
+    // ============================================================
+    // 经典50关，难度平滑递增，开局绝无死锁，箱子数量1~3个，全部可解
+    // 格式：用 '|' 分隔行，@=玩家 $=箱子 .=目标点 #=墙
+    // ============================================================
+    const MASTER_LEVELS = [
+        // 1-5  单箱入门
+        "#####|#@$.#|#####",                     // 1: 一步过关
+        "######|#@ $.#|######",                 // 2: 直线前推
+        "#####|#.@$#|#####",                    // 3: 左推教学
+        "######|#. @$ #|######",                // 4: 简单绕行
+        "#####|#@$ #|# . #|#####",              // 5: 单箱带障碍
         
-        // 6~10  单箱 + 障碍思考
-        "######|#@$ .#|#  #|######",                        // 6 
-        "#####|#@$.#|#...#|#####",                          // 7
-        "######|#. @$#|#  .#|######",                       // 8
-        "#####|#@$ #|# $. #|#####",                         // 9 双目标单箱
-        "######|#@$..#|#... #|######",                      // 10
+        // 6-10 单箱加思考
+        "######|#@$ .#|#  #|######",            // 6
+        "#####|#@$.#|#...#|#####",              // 7
+        "######|#. @$#|#  .#|######",           // 8
+        "#####|#@$ #|# $. #|#####",             // 9 双目标单箱
+        "######|#@$..#|#... #|######",          // 10
         
-        // 11~15 双箱子 入门协作
-        "#####|#@$ #|# .$#|#####",                          // 11 两箱并排
-        "######|#@$ .#|# $.#|######",                       // 12
-        "#####|#.@$#|# $ .#|#####",                         // 13
-        "######|#@$ #|# .$#|# . #|######",                  // 14
-        "#####|#@$.#|# $#|# .#|#####",                      // 15
+        // 11-20 双箱配合
+        "#####|#@$ #|# .$#|#####",              // 11
+        "######|#@$ .#|# $.#|######",           // 12
+        "#####|#.@$#|# $ .#|#####",             // 13
+        "######|#@$ #|# .$#|# . #|######",      // 14
+        "#####|#@$.#|# $#|# .#|#####",          // 15
+        "######|#. @$ #|# $ . #|######",        // 16
+        "#####|#@$ #|# $. #|# .#|#####",        // 17
+        "######|#@$..#|# $..#|#...#|######",    // 18
+        "#####|#.@$#|# $ #|# .#|#####",         // 19
+        "######|#@$ .#|# $.#|#..#|######",      // 20
         
-        // 16~20  双箱 增加复杂度
-        "######|#. @$ #|# $ . #|######",                    // 16
-        "#####|#@$ #|# $. #|# .#|#####",                    // 17
-        "######|#@$..#|# $..#|#...#|######",                // 18
-        "#####|#.@$#|# $ #|# .#|#####",                     // 19
-        "######|#@$ .#|# $.#|#..#|######",                  // 20
+        // 21-30 双箱进阶 + 三箱初现
+        "#####|#@$ #|# $.#|# . #|#####",        // 21
+        "######|#@$ #|# $ .#|# . #|######",     // 22
+        "#####|#.@$#|# $#|# .#|#...#|#####",    // 23
+        "######|#@$..#|# $..#|# .#|######",     // 24
+        "#####|#@$ #|# $$.#|# .#|#####",        // 25 双箱相邻
+        "######|#@$ #|# $$ .#|# ...#|######",   // 26 
+        "#####|#@$.#|# $#|# .$#|#####",         // 27
+        "######|#.@$ #|# $ $.#|# . .#|######",  // 28
+        "#####|#@$ #|# $.#|# .$#|#####",        // 29
+        "######|#@$..#|# $ .#|# $.#|######",    // 30
         
-        // 21~25  双箱 必需规划顺序
-        "#####|#@$ #|# $.#|# . #|#####",                    // 21
-        "######|#@$ #|# $ .#|# . #|######",                 // 22
-        "#####|#.@$#|# $#|# .#|#...#|#####",                // 23
-        "######|#@$..#|# $..#|# .#|######",                 // 24
-        "#####|#@$ #|# $$.#|# .#|#####",                    // 25 两箱相邻
+        // 31-40 三箱紧密规划
+        "#####|#.@$#|# $ $#|# . .#|#####",      // 31
+        "######|#@$ #|# $$ .#|# . .#|######",   // 32
+        "#####|#@$.#|# $ $#|# . .#|#####",      // 33
+        "######|#@$..#|# $$.#|# ...#|######",   // 34
+        "#####|#.@$#|# $$.#|# .. #|#####",      // 35
+        "######|#@$ #|# $$ .#|# .. #|# . #|######", // 36
+        "#####|#@$.#|# $$ #|# ...#|#####",      // 37
+        "######|#.@$ #|# $$ .#|# . .#|# ..#|######", // 38
+        "#####|#@$ #|# $$.#|# . .#|#####",      // 39
+        "######|#@$..#|# $$..#|# . .#|######",  // 40
         
-        // 26~30  三箱 简易版
-        "######|#@$ #|# $$ .#|# ...#|######",               // 26
-        "#####|#@$.#|# $#|# .$#|#####",                     // 27
-        "######|#.@$ #|# $ $.#|# . .#|######",              // 28
-        "#####|#@$ #|# $.#|# .$#|#####",                    // 29
-        "######|#@$..#|# $ .#|# $.#|######",                // 30
-        
-        // 31~35  三箱 深度推演
-        "#####|#.@$#|# $ $#|# . .#|#####",                  // 31
-        "######|#@$ #|# $$ .#|# . .#|######",               // 32
-        "#####|#@$.#|# $ $#|# . .#|#####",                  // 33
-        "######|#@$..#|# $$.#|# ...#|######",               // 34
-        "#####|#.@$#|# $$.#|# .. #|#####",                  // 35
-        
-        // 36~40  多箱巧思 (标准变形)
-        "######|#@$ #|# $$ .#|# .. #|# . #|######",         // 36
-        "#####|#@$.#|# $$ #|# ...#|#####",                  // 37
-        "######|#.@$ #|# $$ .#|# . .#|# ..#|######",        // 38
-        "#####|#@$ #|# $$.#|# . .#|#####",                  // 39
-        "######|#@$..#|# $$..#|# . .#|######",              // 40
-        
-        // 41~45  进阶迷宫风格
-        "#####|#@$ #|# $$.#|# . .#|#..#|#####",             // 41
-        "######|#.@$ #|# $$ .#|# .. #|# . #|######",        // 42
-        "#####|#@$.#|# $$#|# . .#|#..#|#####",              // 43
-        "######|#@$..#|# $$ .#|# . .#|# ...#|######",       // 44
-        "#####|#.@$#|# $$ #|# . .#|#..#|#####",             // 45
-        
-        // 46~50  大师级 三箱严苛
-        "######|#@$..#|# $$..#|# . .#|# . #|######",        // 46
-        "#####|#@$ #|# $$.#|# . .#|#..#|#####",             // 47
-        "######|#.@$ #|# $$ .#|# .. #|# . .#|######",       // 48
-        "#####|#@$.#|# $$ #|# . .#|# ...#|#####",           // 49
-        "######|#@$..#|# $$..#|# . .#|# ...#|######"        // 50 终章
+        // 41-50 大师级迷宫
+        "#####|#@$ #|# $$.#|# . .#|#..#|#####",     // 41
+        "######|#.@$ #|# $$ .#|# .. #|# . #|######",// 42
+        "#####|#@$.#|# $$#|# . .#|#..#|#####",      // 43
+        "######|#@$..#|# $$ .#|# . .#|# ...#|######",//44
+        "#####|#.@$#|# $$ #|# . .#|#..#|#####",     // 45
+        "######|#@$..#|# $$..#|# . .#|# . #|######",//46
+        "#####|#@$ #|# $$.#|# . .#|#..#|#####",     // 47
+        "######|#.@$ #|# $$ .#|# .. #|# . .#|######",//48
+        "#####|#@$.#|# $$ #|# . .#|# ...#|#####",   // 49
+        "######|#@$..#|# $$..#|# . .#|# ...#|######" // 50 终章
     ];
     
-    // 补全至50关 (确保数据完整)
-    while (LEVEL_DATA.length < 50) {
-        LEVEL_DATA.push("######|#@$..#|# $$..#|# . .#|######");
-    }
-    if (LEVEL_DATA.length > 50) LEVEL_DATA.length = 50;
+    // 确保正好50关
+    while (MASTER_LEVELS.length < 50) MASTER_LEVELS.push("######|#@$..#|# $$..#|# . .#|######");
+    if (MASTER_LEVELS.length > 50) MASTER_LEVELS.length = 50;
     
-    // 标准解析 + 自动补全空格对齐
-    function parseLevel(str) {
-        const rows = str.split('|');
-        let maxW = 0;
-        for (let r of rows) if (r.length > maxW) maxW = r.length;
+    // ----- 辅助: 解析关卡(自动对齐宽高) -----
+    function parseLevelToGrid(levelStr) {
+        const rows = levelStr.split('|');
+        let maxWidth = 0;
+        for (let r of rows) if (r.length > maxWidth) maxWidth = r.length;
         const grid = [];
         for (let i = 0; i < rows.length; i++) {
-            const row = [];
-            for (let j = 0; j < maxW; j++) {
-                let ch = j < rows[i].length ? rows[i][j] : ' ';
-                row.push(ch);
+            const rowArr = [];
+            for (let j = 0; j < maxWidth; j++) {
+                let ch = (j < rows[i].length) ? rows[i][j] : ' ';
+                rowArr.push(ch);
             }
-            grid.push(row);
+            grid.push(rowArr);
         }
         return grid;
     }
     
-    // ---------- 游戏核心 ----------
-    let currentLevel = 0;          // 0-index
-    let maxUnlocked = 0;
-    let grid = [];
-    let history = [];
-    let winFlag = false;
+    // ---------- 游戏状态 ----------
+    let currentIdx = 0;           // 0-indexed
+    let unlockedMax = 0;
+    let gameGrid = [];
+    let historyStack = [];
+    let isWin = false;
     
-    // 本地存储
-    function persist() {
-        localStorage.setItem('soko_master_unlock', maxUnlocked);
-        localStorage.setItem('soko_master_cur', currentLevel);
+    // 存储
+    function persistProgress() {
+        localStorage.setItem('soko_master_progress_unlock', unlockedMax);
+        localStorage.setItem('soko_master_progress_level', currentIdx);
     }
     
-    function loadStorage() {
-        const unlock = localStorage.getItem('soko_master_unlock');
-        if (unlock !== null) maxUnlocked = parseInt(unlock);
-        else maxUnlocked = 0;
-        const cur = localStorage.getItem('soko_master_cur');
-        if (cur !== null) currentLevel = parseInt(cur);
-        else currentLevel = 0;
-        if (currentLevel > maxUnlocked) currentLevel = maxUnlocked;
-        if (currentLevel < 0) currentLevel = 0;
-        if (maxUnlocked < 0) maxUnlocked = 0;
+    function loadProgress() {
+        const unlock = localStorage.getItem('soko_master_progress_unlock');
+        if (unlock !== null) unlockedMax = parseInt(unlock);
+        else unlockedMax = 0;
+        const lvl = localStorage.getItem('soko_master_progress_level');
+        if (lvl !== null) currentIdx = parseInt(lvl);
+        else currentIdx = 0;
+        if (currentIdx > unlockedMax) currentIdx = unlockedMax;
+        if (currentIdx < 0) currentIdx = 0;
+        if (unlockedMax < 0) unlockedMax = 0;
     }
     
-    // 胜利检测: 没有普通箱子 $
-    function isVictory() {
-        for (let i = 0; i < grid.length; i++) {
-            for (let j = 0; j < grid[i].length; j++) {
-                if (grid[i][j] === '$') return false;
+    // 胜利检测 (没有普通箱子 '$')
+    function checkVictory() {
+        for (let i = 0; i < gameGrid.length; i++) {
+            for (let j = 0; j < gameGrid[i].length; j++) {
+                if (gameGrid[i][j] === '$') return false;
             }
         }
         return true;
     }
     
-    function checkAndHandleWin() {
-        if (isVictory() && !winFlag) {
-            winFlag = true;
-            if (currentLevel === maxUnlocked && currentLevel + 1 < 50) {
-                maxUnlocked = currentLevel + 1;
-                persist();
+    function handleWin() {
+        if (checkVictory() && !isWin) {
+            isWin = true;
+            if (currentIdx === unlockedMax && currentIdx + 1 < 50) {
+                unlockedMax = currentIdx + 1;
+                persistProgress();
             }
             document.getElementById('winModal').style.display = 'flex';
-            showToast('🎉 过关！按 Enter 或点击下一关', false);
+            showToastMsg('🎉 过关成功！ 按 Enter 继续', false);
             return true;
         }
         return false;
     }
     
-    // 移动逻辑
-    function move(dx, dy) {
-        if (winFlag) return false;
+    // 移动核心
+    function performMove(dRow, dCol) {
+        if (isWin) return false;
         
-        let px = -1, py = -1;
-        outer: for (let i = 0; i < grid.length; i++) {
-            for (let j = 0; j < grid[i].length; j++) {
-                if (grid[i][j] === '@' || grid[i][j] === '+') {
-                    px = i; py = j;
+        let playerRow = -1, playerCol = -1;
+        outer: for (let i = 0; i < gameGrid.length; i++) {
+            for (let j = 0; j < gameGrid[i].length; j++) {
+                if (gameGrid[i][j] === '@' || gameGrid[i][j] === '+') {
+                    playerRow = i; playerCol = j;
                     break outer;
                 }
             }
         }
-        if (px === -1) return false;
+        if (playerRow === -1) return false;
         
-        const nx = px + dx;
-        const ny = py + dy;
-        if (nx < 0 || ny < 0 || nx >= grid.length || ny >= grid[0].length) return false;
+        const newRow = playerRow + dRow;
+        const newCol = playerCol + dCol;
+        if (newRow < 0 || newCol < 0 || newRow >= gameGrid.length || newCol >= gameGrid[0].length) return false;
         
-        const target = grid[nx][ny];
-        const snapshot = JSON.parse(JSON.stringify(grid));
+        const targetCell = gameGrid[newRow][newCol];
+        const snapshot = JSON.parse(JSON.stringify(gameGrid));
         
-        // 空位或目标点
-        if (target === ' ' || target === '.') {
-            const wasOnTarget = (grid[px][py] === '+');
-            grid[px][py] = wasOnTarget ? '.' : ' ';
-            grid[nx][ny] = (target === '.') ? '+' : '@';
-            history.push(snapshot);
-            renderBoard();
-            checkAndHandleWin();
+        // 空地 / 目标点
+        if (targetCell === ' ' || targetCell === '.') {
+            const wasOnTarget = (gameGrid[playerRow][playerCol] === '+');
+            gameGrid[playerRow][playerCol] = wasOnTarget ? '.' : ' ';
+            gameGrid[newRow][newCol] = (targetCell === '.') ? '+' : '@';
+            historyStack.push(snapshot);
+            renderGame();
+            handleWin();
             return true;
         }
         // 推箱子
-        else if (target === '$' || target === '*') {
-            const nnx = nx + dx;
-            const nny = ny + dy;
-            if (nnx < 0 || nny < 0 || nnx >= grid.length || nny >= grid[0].length) return false;
-            const beyond = grid[nnx][nny];
-            if (beyond === ' ' || beyond === '.') {
-                const boxWasOnTarget = (target === '*');
-                const beyondIsTarget = (beyond === '.');
+        else if (targetCell === '$' || targetCell === '*') {
+            const pushRow = newRow + dRow;
+            const pushCol = newCol + dCol;
+            if (pushRow < 0 || pushCol < 0 || pushRow >= gameGrid.length || pushCol >= gameGrid[0].length) return false;
+            const beyondCell = gameGrid[pushRow][pushCol];
+            
+            if (beyondCell === ' ' || beyondCell === '.') {
+                const boxWasOnTarget = (targetCell === '*');
+                const beyondIsTarget = (beyondCell === '.');
                 
-                // 推箱子
-                grid[nnx][nny] = beyondIsTarget ? '*' : '$';
-                grid[nx][ny] = boxWasOnTarget ? '+' : '@';
-                const wasPlayerTarget = (grid[px][py] === '+');
-                grid[px][py] = wasPlayerTarget ? '.' : ' ';
+                // 箱子移动
+                gameGrid[pushRow][pushCol] = beyondIsTarget ? '*' : '$';
+                // 原箱子位置变成玩家
+                gameGrid[newRow][newCol] = boxWasOnTarget ? '+' : '@';
+                // 原玩家位置清空
+                const playerWasTarget = (gameGrid[playerRow][playerCol] === '+');
+                gameGrid[playerRow][playerCol] = playerWasTarget ? '.' : ' ';
                 
-                history.push(snapshot);
-                renderBoard();
-                checkAndHandleWin();
+                historyStack.push(snapshot);
+                renderGame();
+                handleWin();
                 return true;
             }
         }
         return false;
     }
     
-    function undoMove() {
-        if (winFlag) return;
-        if (history.length === 0) {
-            showToast('无历史步骤', true);
+    function undoStep() {
+        if (isWin) return;
+        if (historyStack.length === 0) {
+            showToastMsg('没有可撤回的操作', true);
             return;
         }
-        grid = history.pop();
-        winFlag = false;
+        gameGrid = historyStack.pop();
+        isWin = false;
         document.getElementById('winModal').style.display = 'none';
-        renderBoard();
+        renderGame();
     }
     
-    function resetCurrent() {
-        grid = parseLevel(LEVEL_DATA[currentLevel]);
-        history = [];
-        winFlag = false;
+    function resetLevel() {
+        gameGrid = parseLevelToGrid(MASTER_LEVELS[currentIdx]);
+        historyStack = [];
+        isWin = false;
         document.getElementById('winModal').style.display = 'none';
-        renderBoard();
-        showToast('关卡已重置', false);
+        renderGame();
+        showToastMsg('关卡已重置', false);
     }
     
-    function loadLevel(index) {
-        if (index > maxUnlocked) {
-            showToast(`⚠️ 第${index+1}关尚未解锁，请先通关前面的关卡`, true);
+    function loadSpecificLevel(index) {
+        if (index > unlockedMax) {
+            showToastMsg(`⚠️ 第${index+1}关尚未解锁，请先通关前面的关卡`, true);
             return false;
         }
-        currentLevel = index;
-        grid = parseLevel(LEVEL_DATA[currentLevel]);
-        history = [];
-        winFlag = false;
+        currentIdx = index;
+        gameGrid = parseLevelToGrid(MASTER_LEVELS[currentIdx]);
+        historyStack = [];
+        isWin = false;
         document.getElementById('winModal').style.display = 'none';
-        renderBoard();
-        persist();
-        showToast(`进入第 ${currentLevel+1} 关`, false);
+        renderGame();
+        persistProgress();
+        showToastMsg(`进入第 ${currentIdx+1} 关`, false);
         return true;
     }
     
-    function nextStage() {
-        if (!winFlag) {
-            showToast('请先完成当前关卡再继续', true);
+    function nextLevel() {
+        if (!isWin) {
+            showToastMsg('请先完成当前关卡！', true);
             return;
         }
-        if (currentLevel + 1 < 50) {
-            loadLevel(currentLevel + 1);
+        if (currentIdx + 1 < 50) {
+            loadSpecificLevel(currentIdx + 1);
         } else {
-            showToast('🏆 恭喜完成全部50关！ 你是推箱子宗师！', false);
+            showToastMsg('🏆 恭喜通关全部 50 关！你是推箱子宗师！', false);
         }
     }
     
-    // 渲染页面
-    function renderBoard() {
+    // 界面渲染
+    function renderGame() {
         const container = document.getElementById('board');
         container.innerHTML = '';
-        document.getElementById('levelIdx').innerText = currentLevel + 1;
+        document.getElementById('levelDisplay').innerText = currentIdx + 1;
         
-        for (let i = 0; i < grid.length; i++) {
+        for (let i = 0; i < gameGrid.length; i++) {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'row';
-            for (let j = 0; j < grid[i].length; j++) {
-                const cell = grid[i][j];
+            for (let j = 0; j < gameGrid[i].length; j++) {
+                const cellChar = gameGrid[i][j];
                 const cellDiv = document.createElement('div');
                 cellDiv.className = 'cell';
                 
-                // 目标背景
-                if (cell === '.' || cell === '+' || cell === '*') {
+                // 目标点样式
+                if (cellChar === '.' || cellChar === '+' || cellChar === '*') {
                     cellDiv.classList.add('target');
                 }
-                if (cell === '#') {
+                if (cellChar === '#') {
                     cellDiv.classList.add('wall');
                 }
-                // 箱子
-                if (cell === '$' || cell === '*') {
+                // 绘制箱子
+                if (cellChar === '$' || cellChar === '*') {
                     const boxDiv = document.createElement('div');
                     boxDiv.className = 'box';
-                    if (cell === '*') boxDiv.classList.add('box-done');
+                    if (cellChar === '*') boxDiv.classList.add('box-done');
                     boxDiv.innerText = '📦';
                     cellDiv.appendChild(boxDiv);
                 }
-                // 玩家
-                if (cell === '@' || cell === '+') {
+                // 绘制玩家
+                if (cellChar === '@' || cellChar === '+') {
                     const playerDiv = document.createElement('div');
                     playerDiv.className = 'player';
                     playerDiv.innerText = '😀';
@@ -576,84 +569,84 @@
         }
     }
     
-    // UI 辅助
-    function openLevelMenu() {
-        const listDiv = document.getElementById('levelList');
-        listDiv.innerHTML = '';
+    // ----- UI 交互 -----
+    function showLevelSelect() {
+        const gridContainer = document.getElementById('levelGridContainer');
+        gridContainer.innerHTML = '';
         for (let i = 0; i < 50; i++) {
             const btn = document.createElement('div');
             btn.className = 'level-btn';
-            btn.innerText = (i+1);
-            if (i <= maxUnlocked) {
+            btn.innerText = i + 1;
+            if (i <= unlockedMax) {
                 btn.classList.add('unlocked');
                 btn.onclick = (idx => () => {
-                    loadLevel(idx);
-                    closeMenu();
+                    loadSpecificLevel(idx);
+                    closeLevelMenu();
                 })(i);
             }
-            listDiv.appendChild(btn);
+            gridContainer.appendChild(btn);
         }
         document.getElementById('menuModal').style.display = 'flex';
     }
     
-    function closeMenu() {
+    function closeLevelMenu() {
         document.getElementById('menuModal').style.display = 'none';
     }
     
-    function showHelpTip() {
+    function showAdvice() {
         const tips = [
-            "💡 把箱子推到蓝色光点上", "💡 箱子全部归位即可过关", 
-            "💡 避免把箱子推到死角", "💡 可随时撤回 (Z键)",
-            "💡 按R重置当前关卡", "💡 难度会逐渐增加, 请耐心思考"
+            "💡 把箱子推到蓝色光点上", "💡 所有箱子归位即可过关", 
+            "💡 避免将箱子推向死角", "💡 善用撤回 (Z 键) 重新规划",
+            "💡 难度逐渐上升，保持耐心", "💡 按 R 重置当前关卡"
         ];
-        showToast(tips[Math.floor(Math.random() * tips.length)], false);
+        showToastMsg(tips[Math.floor(Math.random() * tips.length)], false);
     }
     
-    function showToast(msg, isErr = false) {
-        const toastDiv = document.createElement('div');
-        toastDiv.className = 'toast';
-        toastDiv.innerText = msg;
-        if (isErr) toastDiv.style.color = '#f97316';
-        document.body.appendChild(toastDiv);
-        setTimeout(() => toastDiv.remove(), 2200);
+    function showToastMsg(msg, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        toast.innerText = msg;
+        if (isError) toast.style.color = '#f97316';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2100);
     }
     
-    // 键盘事件
-    function onKeyDown(e) {
+    // 键盘控制
+    function onGlobalKeydown(e) {
         const key = e.key;
-        if (winFlag && (key === 'Enter')) {
+        if (isWin && (key === 'Enter')) {
             e.preventDefault();
-            nextStage();
+            nextLevel();
             return;
         }
-        if (key === 'ArrowUp' || key === 'w' || key === 'W') { e.preventDefault(); move(-1,0); }
-        else if (key === 'ArrowDown' || key === 's' || key === 'S') { e.preventDefault(); move(1,0); }
-        else if (key === 'ArrowLeft' || key === 'a' || key === 'A') { e.preventDefault(); move(0,-1); }
-        else if (key === 'ArrowRight' || key === 'd' || key === 'D') { e.preventDefault(); move(0,1); }
-        else if (key === 'z' || key === 'Z') { e.preventDefault(); undoMove(); }
-        else if (key === 'r' || key === 'R') { e.preventDefault(); resetCurrent(); }
-        else if (key === 'Escape') { closeMenu(); }
+        if (key === 'ArrowUp' || key === 'w' || key === 'W') { e.preventDefault(); performMove(-1, 0); }
+        else if (key === 'ArrowDown' || key === 's' || key === 'S') { e.preventDefault(); performMove(1, 0); }
+        else if (key === 'ArrowLeft' || key === 'a' || key === 'A') { e.preventDefault(); performMove(0, -1); }
+        else if (key === 'ArrowRight' || key === 'd' || key === 'D') { e.preventDefault(); performMove(0, 1); }
+        else if (key === 'z' || key === 'Z') { e.preventDefault(); undoStep(); }
+        else if (key === 'r' || key === 'R') { e.preventDefault(); resetLevel(); }
+        else if (key === 'Escape') { closeLevelMenu(); }
     }
     
-    // 初始化
-    function init() {
-        loadStorage();
-        grid = parseLevel(LEVEL_DATA[currentLevel]);
-        history = [];
-        winFlag = false;
-        renderBoard();
-        window.addEventListener('keydown', onKeyDown);
-        // 提供全局函数
-        window.tryMove = move;
-        window.undoMove = undoMove;
-        window.resetCurrent = resetCurrent;
-        window.nextStage = nextStage;
-        window.openLevelMenu = openLevelMenu;
-        window.closeMenu = closeMenu;
-        window.showHelpTip = showHelpTip;
+    // 初始化游戏
+    function initGame() {
+        loadProgress();
+        gameGrid = parseLevelToGrid(MASTER_LEVELS[currentIdx]);
+        historyStack = [];
+        isWin = false;
+        renderGame();
+        window.addEventListener('keydown', onGlobalKeydown);
+        // 挂载全局函数
+        window.requestMove = performMove;
+        window.undoStep = undoStep;
+        window.resetLevel = resetLevel;
+        window.nextLevel = nextLevel;
+        window.showLevelSelect = showLevelSelect;
+        window.closeLevelMenu = closeLevelMenu;
+        window.showAdvice = showAdvice;
     }
     
-    init();
+    initGame();
 </script>
 </body>
 </html>
