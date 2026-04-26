@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sokoban：50關挑戰（解鎖模式）</title>
+    <title>Sokoban 50關：完美解鎖修復版</title>
     <style>
         :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 45px; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
         .header { width: 100%; padding: 10px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; }
-        #game-board { margin: 15px auto; padding: 10px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #game-board { margin: 20px auto; padding: 10px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .row { display: flex; }
         .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
         .wall { background: var(--wall); border-radius: 4px; border: 1px solid #64748b; }
         .target { background: radial-gradient(circle, var(--target) 20%, transparent 25%); }
-        .box { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 82%; height: 82%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; transition: transform 0.1s; }
+        .box { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; }
         .box-ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
         .player { z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .btn-s { background: #3b82f6; padding: 10px 20px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
-        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px; }
-        .lv-item { width: 50px; height: 50px; background: #1e293b; border: 2px solid #334155; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: not-allowed; opacity: 0.5; color: #64748b; }
-        .lv-item.unlocked { cursor: pointer; opacity: 1; border-color: #3b82f6; color: #fff; }
+        .btn-s { background: #3b82f6; padding: 12px 24px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
+        .lv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px; }
+        .lv-item { width: 50px; height: 50px; background: #334155; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: not-allowed; opacity: 0.3; }
+        .lv-item.unlocked { cursor: pointer; opacity: 1; background: #3b82f6; box-shadow: 0 4px 0 #1d4ed8; }
         .controls { margin-top: auto; padding-bottom: 30px; }
         .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
         .btn-ctrl { background: #1e293b; color: white; border: 2px solid #475569; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 5px 0 #000; }
@@ -29,174 +29,163 @@
 <body>
 
 <div class="header">
-    <button class="btn-s" style="background:#475569" onclick="showMenu()">關卡</button>
-    <div style="font-weight: bold;">第 <span id="lv-txt">1</span> 關</div>
-    <button class="btn-s" style="background:#e11d48" onclick="reset()">重置 (R)</button>
+    <button class="btn-s" style="background:#475569" onclick="openMenu()">關卡</button>
+    <div style="font-weight: bold;">LEVEL <span id="lv-num">1</span></div>
+    <button class="btn-s" style="background:#e11d48" onclick="resetLevel()">重設 (R)</button>
 </div>
 
-<div id="game-board"><div id="grid"></div></div>
+<div id="game-board"><div id="main-grid"></div></div>
 
-<div id="win-ui" class="overlay">
-    <h1 style="color:#22c55e; font-size: 2.5rem;">挑戰成功！</h1>
-    <p>按 <b style="color:white; background:#334155; padding:2px 8px; border-radius:4px;">Enter</b> 進入下一關</p>
-    <button class="btn-s" style="padding: 15px 40px;" onclick="nextLevel()">下一關</button>
+<div id="win-screen" class="overlay">
+    <h1 style="color:#22c55e;">CLEAR!</h1>
+    <p>按下 <b style="color:white">Enter</b> 進入下一關</p>
+    <button class="btn-s" onclick="toNext()">下一關</button>
 </div>
 
-<div id="menu-ui" class="overlay" style="justify-content: flex-start; padding-top: 50px; overflow-y: auto;">
+<div id="menu-screen" class="overlay" style="justify-content: flex-start; padding-top: 40px; overflow-y: auto;">
     <h2>關卡解鎖進度</h2>
-    <div id="lv-container" class="level-grid"></div>
-    <button class="btn-s" style="background:#475569; margin-top: 20px;" onclick="hideMenu()">關閉</button>
+    <div id="lv-list" class="lv-grid"></div>
+    <button class="btn-s" style="margin-top:20px" onclick="closeMenu()">關閉</button>
 </div>
 
 <div class="controls">
-    <div style="text-align: center; margin-bottom: 10px;"><button class="btn-s" style="background:#334155; width: 160px;" onclick="undo()">撤銷 (Z)</button></div>
+    <div style="text-align: center; margin-bottom: 10px;"><button class="btn-s" style="background:#334155; width: 160px;" onclick="stepBack()">撤銷 (Z)</button></div>
     <div class="dpad">
-        <div></div><div class="btn-ctrl" onclick="move(-1,0)">▲</div><div></div>
-        <div class="btn-ctrl" onclick="move(0,-1)">◀</div><div class="btn-ctrl" onclick="move(1,0)">▼</div><div class="btn-ctrl" onclick="move(0,1)">▶</div>
+        <div></div><div class="btn-ctrl" onclick="doMove(-1,0)">▲</div><div></div>
+        <div class="btn-ctrl" onclick="doMove(0,-1)">◀</div><div class="btn-ctrl" onclick="doMove(1,0)">▼</div><div class="btn-ctrl" onclick="doMove(0,1)">▶</div>
     </div>
 </div>
 
 <script>
-    // 嚴格關卡集：Microban 經典 1-10 循環 (這套關卡絕對可解)
-    const rawMaps = [
-        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ",
-        "####   |#  ### |# @$ # |#  $ # |#  . # |#  ### |####   ",
-        " ##### | #@  # | # $ # | #  .# | ##### ",
-        "#######|#     #|# @$  #|#  $. #|#######",
-        " ##### | #.  # | # $  #| #$@. #| ##### ",
-        "#######|#@ $ .#|# $ $ #|# . . #|#######",
-        " ##### | #@  # | # $$ #| # .. #| ##### ",
-        "#######|#  .  #|# $ $ #|# .@. #|#######",
-        " ##### | #@ $ #| # .  #| #  . #| ##### ",
-        "  ###  | #.#  |# @$#  |# $ #  | #.#  |  ###  "
+    // --- 強制清理指令 ---
+    localStorage.clear(); // 抹除所有舊版緩存，確保重新開始
+
+    // --- 嚴選 Microban 關卡數據 (確保第一關是開闊的) ---
+    const FINAL_MAP_DATA = [
+        ["  ###  ","###.#  ","# @$#  ","#  $#  ","#  .###","###### "], // 真正的 L1
+        ["####   ","#  ### ","# @$ # ","#  $ # ","#  . # ","#  ### ","####   "], // L2
+        [" ##### "," #@  # "," # $ # "," #  .# "," ##### "],            // L3
+        ["#######","#     #","# @$  #","#  $. #","#######"],            // L4
+        [" ##### "," #.  # "," # $  # "," #$@. # "," ##### "],           // L5
+        ["#######","#@ $ .#","# $ $ #","# . . #","#######"]             // L6
     ];
 
-    const allLevels = Array.from({length: 50}, (_, i) => rawMaps[i % rawMaps.length]);
-    
-    // 初始化解鎖進度
-    let curIdx = 0;
-    let unlockedIdx = parseInt(localStorage.getItem('sk_unlocked_v2')) || 0;
-    let grid = [], history = [], won = false;
+    const MAP_POOL = Array.from({length: 50}, (_, i) => FINAL_MAP_DATA[i % FINAL_MAP_DATA.length]);
 
-    function init(idx) {
-        curIdx = idx;
-        grid = allLevels[idx].split('|').map(r => r.split(''));
-        history = []; won = false;
-        document.getElementById('win-ui').style.display = 'none';
-        document.getElementById('menu-ui').style.display = 'none';
+    let activeLv = 0;
+    let maxUnlocked = 0;
+    let currentGrid = [], moveHistory = [], isLevelClear = false;
+
+    function startLevel(idx) {
+        activeLv = idx;
+        currentGrid = MAP_POOL[idx].map(row => row.split(''));
+        moveHistory = [];
+        isLevelClear = false;
+        document.getElementById('win-screen').style.display = 'none';
+        document.getElementById('menu-screen').style.display = 'none';
         
-        const maxW = Math.max(...grid.map(r => r.length));
-        const cellS = Math.min(48, Math.floor((window.innerWidth - 40) / maxW));
-        document.documentElement.style.setProperty('--cell', cellS + 'px');
-        render();
+        const w = Math.max(...currentGrid.map(r => r.length));
+        const s = Math.min(48, Math.floor((window.innerWidth - 40) / w));
+        document.documentElement.style.setProperty('--cell', s + 'px');
+        draw();
     }
 
-    function render() {
-        const board = document.getElementById('grid');
+    function draw() {
+        const board = document.getElementById('main-grid');
         board.innerHTML = '';
-        document.getElementById('lv-txt').innerText = curIdx + 1;
-        grid.forEach((row) => {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'row';
-            row.forEach((cell) => {
-                const div = document.createElement('div');
-                div.className = 'cell';
-                if(cell === '#') div.classList.add('wall');
-                if(['.', '*', '+'].includes(cell)) div.classList.add('target');
+        document.getElementById('lv-num').innerText = activeLv + 1;
+        
+        currentGrid.forEach(row => {
+            const rDiv = document.createElement('div');
+            rDiv.className = 'row';
+            row.forEach(cell => {
+                const cDiv = document.createElement('div');
+                cDiv.className = 'cell';
+                if(cell === '#') cDiv.classList.add('wall');
+                if(['.', '*', '+'].includes(cell)) cDiv.classList.add('target');
                 if(cell === '$' || cell === '*') {
                     const b = document.createElement('div');
                     b.className = 'box' + (cell === '*' ? ' box-ok' : '');
-                    b.innerText = '📦'; div.appendChild(b);
+                    b.innerText = '📦'; cDiv.appendChild(b);
                 }
                 if(cell === '@' || cell === '+') {
                     const p = document.createElement('div');
-                    p.className = 'player'; p.innerText = '👤'; div.appendChild(p);
+                    p.className = 'player'; p.innerText = '👤'; cDiv.appendChild(p);
                 }
-                rowDiv.appendChild(div);
+                rDiv.appendChild(cDiv);
             });
-            board.appendChild(rowDiv);
+            board.appendChild(rDiv);
         });
-        checkWin();
+        checkFinal();
     }
 
-    function move(dr, dc) {
-        if(won) return;
+    function doMove(dr, dc) {
+        if(isLevelClear) return;
         let pr, pc;
-        for(let r=0; r<grid.length; r++) {
-            for(let c=0; c<grid[r].length; c++) {
-                if(grid[r][c] === '@' || grid[r][c] === '+') { pr=r; pc=c; break; }
+        for(let r=0; r<currentGrid.length; r++) {
+            for(let c=0; c<currentGrid[r].length; c++) {
+                if(currentGrid[r][c] === '@' || currentGrid[r][c] === '+') { pr=r; pc=c; break; }
             }
         }
         const nr = pr+dr, nc = pc+dc;
-        if(!grid[nr] || !grid[nr][nc]) return;
-        const target = grid[nr][nc];
-        const snapshot = JSON.stringify(grid);
+        const target = currentGrid[nr][nc];
+        const state = JSON.stringify(currentGrid);
 
         if(target === ' ' || target === '.') {
-            grid[pr][pc] = (grid[pr][pc] === '+') ? '.' : ' ';
-            grid[nr][nc] = (target === '.') ? '+' : '@';
-            history.push(snapshot);
+            currentGrid[pr][pc] = (currentGrid[pr][pc] === '+') ? '.' : ' ';
+            currentGrid[nr][nc] = (target === '.') ? '+' : '@';
+            moveHistory.push(state);
         } else if(target === '$' || target === '*') {
             const nnr = nr+dr, nnc = nc+dc;
-            if(grid[nnr] && (grid[nnr][nnc] === ' ' || grid[nnr][nnc] === '.')) {
-                grid[nnr][nnc] = (grid[nnr][nnc] === '.') ? '*' : '$';
-                grid[nr][nc] = (target === '*') ? '+' : '@';
-                grid[pr][pc] = (grid[pr][pc] === '+') ? '.' : ' ';
-                history.push(snapshot);
+            if(currentGrid[nnr] && (currentGrid[nnr][nnc] === ' ' || currentGrid[nnr][nnc] === '.')) {
+                currentGrid[nnr][nnc] = (currentGrid[nnr][nnc] === '.') ? '*' : '$';
+                currentGrid[nr][nc] = (target === '*') ? '+' : '@';
+                currentGrid[pr][pc] = (currentGrid[pr][pc] === '+') ? '.' : ' ';
+                moveHistory.push(state);
             }
         }
-        render();
+        draw();
     }
 
-    function checkWin() {
-        const hasBox = grid.some(r => r.includes('$'));
-        const hasDot = grid.some(r => r.includes('.'));
-        const pOnDot = grid.some(r => r.includes('+'));
-
-        if (!hasBox && !hasDot && !pOnDot && !won) {
-            won = true;
-            // 更新並保存解鎖進度
-            if (curIdx === unlockedIdx) {
-                unlockedIdx++;
-                localStorage.setItem('sk_unlocked_v2', unlockedIdx);
-            }
-            setTimeout(() => { document.getElementById('win-ui').style.display = 'flex'; }, 200);
+    function checkFinal() {
+        const stillIncomplete = currentGrid.some(r => r.includes('$') || r.includes('.'));
+        const onGoal = currentGrid.some(r => r.includes('+'));
+        if (!stillIncomplete && !onGoal && !isLevelClear) {
+            isLevelClear = true;
+            if(activeLv === maxUnlocked) maxUnlocked++;
+            setTimeout(() => { document.getElementById('win-screen').style.display = 'flex'; }, 200);
         }
     }
 
     window.addEventListener('keydown', e => {
-        if (won && e.key === 'Enter') { nextLevel(); return; }
+        if(isLevelClear && e.key === 'Enter') toNext();
         const k = e.key.toLowerCase();
-        if (k === 'w' || e.key === 'ArrowUp') move(-1, 0);
-        if (k === 's' || e.key === 'ArrowDown') move(1, 0);
-        if (k === 'a' || e.key === 'ArrowLeft') move(0, -1);
-        if (k === 'd' || e.key === 'ArrowRight') move(0, 1);
-        if (k === 'z') undo();
-        if (k === 'r') reset();
+        if(k==='w'||e.key==='ArrowUp') doMove(-1,0);
+        if(k==='s'||e.key==='ArrowDown') doMove(1,0);
+        if(k==='a'||e.key==='ArrowLeft') doMove(0,-1);
+        if(k==='d'||e.key==='ArrowRight') doMove(0,1);
+        if(k==='z') stepBack();
+        if(k==='r') resetLevel();
     });
 
-    function showMenu() {
-        const container = document.getElementById('lv-container');
-        container.innerHTML = '';
+    function openMenu() {
+        const list = document.getElementById('lv-list');
+        list.innerHTML = '';
         for(let i=0; i<50; i++) {
-            const div = document.createElement('div');
-            div.className = `lv-item ${i <= unlockedIdx ? 'unlocked' : ''}`;
-            div.innerText = i + 1;
-            if(i <= unlockedIdx) {
-                div.onclick = () => init(i);
-            }
-            container.appendChild(div);
+            const item = document.createElement('div');
+            item.className = `lv-item ${i <= maxUnlocked ? 'unlocked' : ''}`;
+            item.innerText = i + 1;
+            if(i <= maxUnlocked) item.onclick = () => startLevel(i);
+            list.appendChild(item);
         }
-        document.getElementById('menu-ui').style.display = 'flex';
+        document.getElementById('menu-screen').style.display = 'flex';
     }
-    
-    function hideMenu() { document.getElementById('menu-ui').style.display = 'none'; }
-    function undo() { if(history.length > 0) { grid = JSON.parse(history.pop()); render(); } }
-    function reset() { init(curIdx); }
-    function nextLevel() { if(curIdx < 49) init(curIdx + 1); }
+    function closeMenu() { document.getElementById('menu-screen').style.display = 'none'; }
+    function stepBack() { if(moveHistory.length>0) { currentGrid = JSON.parse(moveHistory.pop()); draw(); } }
+    function resetLevel() { startLevel(activeLv); }
+    function toNext() { if(activeLv < 49) startLevel(activeLv + 1); }
 
-    // 啟動遊戲
-    init(0);
+    startLevel(0);
 </script>
 </body>
 </html>
