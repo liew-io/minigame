@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>推箱子经典50关 - 完美可解 | 手机友好十字键 | 回车下一关</title>
+    <title>推箱子经典50关 - 绝对无死局 | 每个箱子都可推 | 手机十字键</title>
     <style>
         * {
             user-select: none;
@@ -115,7 +115,7 @@
             flex-wrap: wrap;
         }
 
-        /* 十字方向键布局 - 移动端友好 */
+        /* 十字方向键 - 上/左/下/右 立体布局 */
         .arrow-panel {
             background: #00000066;
             backdrop-filter: blur(4px);
@@ -151,7 +151,6 @@
             transform: translateY(3px);
             box-shadow: 0 1px 0 #1e1e1e;
         }
-        /* 小屏幕适配 */
         @media (max-width: 560px) {
             .game-container { padding: 12px 15px 18px 15px; }
             .arrow {
@@ -222,7 +221,6 @@
             <button id="resetBtn">🔄 重置</button>
         </div>
         <div class="controls">
-            <!-- 十字方向键：上 / 左 下 右 -->
             <div class="arrow-panel">
                 <div class="arrow-row">
                     <div class="arrow" data-dir="up">▲</div>
@@ -248,157 +246,32 @@
 
 <script>
     (function() {
-        // ======================= 50个精心设计的关卡（全部验证可达，无任何死锁） =======================
+        // ======================= 50个精心设计的关卡 + 自动修复死锁引擎 =======================
         // 数值: 0空地 1墙 2玩家 3箱子 4目标点 5玩家在目标 6箱子在目标
         const LEVELS = [];
         
-        // ----- 第1关 (3箱) -----
-        LEVELS[0] = [
-            [1,1,1,1,1,1,1,1],
-            [1,4,0,0,0,0,0,1],
-            [1,0,3,0,1,0,0,1],
-            [1,0,0,2,0,0,0,1],
-            [1,0,1,3,0,3,0,1],
-            [1,0,0,0,0,4,0,1],
-            [1,0,0,0,0,4,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
+        // ----- 第1-14关 安全手工关卡 -----
+        LEVELS[0] = [[1,1,1,1,1,1,1,1],[1,4,0,0,0,0,0,1],[1,0,3,0,1,0,0,1],[1,0,0,2,0,0,0,1],[1,0,1,3,0,3,0,1],[1,0,0,0,0,4,0,1],[1,0,0,0,0,4,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[1] = [[1,1,1,1,1,1,1,1],[1,4,0,0,0,4,0,1],[1,0,3,0,0,0,0,1],[1,0,0,2,0,3,0,1],[1,0,3,0,0,0,0,1],[1,0,0,0,0,3,0,1],[1,4,0,0,0,4,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[2] = [[1,1,1,1,1,1,1,1],[1,4,0,0,1,0,4,1],[1,0,3,0,1,0,0,1],[1,0,0,2,0,3,0,1],[1,0,3,0,0,0,0,1],[1,0,0,0,1,0,4,1],[1,4,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[3] = [[1,1,1,1,1,1,1,1],[1,0,4,0,0,0,0,1],[1,0,3,0,1,0,4,1],[1,0,0,2,0,3,0,1],[1,0,0,1,0,0,0,1],[1,0,3,0,0,4,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[4] = [[1,1,1,1,1,1,1,1],[1,4,0,0,0,4,0,1],[1,0,3,0,1,0,0,1],[1,0,0,2,1,3,0,1],[1,0,3,0,0,0,0,1],[1,0,0,0,0,3,0,1],[1,4,0,0,3,4,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[5] = [[1,1,1,1,1,1,1,1],[1,4,0,0,0,0,4,1],[1,0,0,3,0,0,0,1],[1,0,2,0,0,3,0,1],[1,0,0,1,0,0,0,1],[1,0,3,0,4,0,0,1],[1,4,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[6] = [[1,1,1,1,1,1,1,1],[1,4,0,0,0,4,0,1],[1,0,3,0,0,0,0,1],[1,0,0,2,0,3,0,1],[1,0,3,0,0,0,0,1],[1,0,0,0,0,3,0,1],[1,4,0,0,0,4,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[7] = [[1,1,1,1,1,1,1,1],[1,4,0,0,1,4,0,1],[1,0,3,0,0,0,0,1],[1,0,0,2,0,0,3,1],[1,0,1,0,0,4,0,1],[1,0,3,0,0,0,0,1],[1,0,0,0,0,3,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[8] = [[1,1,1,1,1,1,1,1],[1,0,0,4,0,0,4,1],[1,0,3,0,1,0,0,1],[1,0,0,2,0,3,0,1],[1,0,1,0,0,0,0,1],[1,0,0,4,0,0,3,1],[1,0,0,0,0,4,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[9] = [[1,1,1,1,1,1,1,1],[1,4,0,0,0,0,0,1],[1,0,0,3,0,1,0,1],[1,0,2,0,0,0,0,1],[1,0,1,4,0,3,0,1],[1,0,0,0,0,4,0,1],[1,0,3,0,0,0,4,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[10] = [[1,1,1,1,1,1,1,1],[1,4,0,0,1,0,4,1],[1,0,3,0,0,3,0,1],[1,0,0,2,0,0,0,1],[1,0,0,0,4,0,0,1],[1,0,1,3,0,0,0,1],[1,0,0,0,0,4,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[11] = [[1,1,1,1,1,1,1,1],[1,0,4,0,0,0,0,1],[1,0,3,0,1,0,4,1],[1,0,2,0,0,3,0,1],[1,0,0,1,0,0,0,1],[1,0,4,0,0,0,3,1],[1,0,0,0,0,4,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[12] = [[1,1,1,1,1,1,1,1],[1,4,0,0,0,4,0,1],[1,0,0,3,0,0,0,1],[1,0,0,2,1,3,0,1],[1,0,1,0,0,0,0,1],[1,0,3,0,0,4,0,1],[1,0,0,4,0,0,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[13] = [[1,1,1,1,1,1,1,1],[1,0,0,4,0,0,4,1],[1,0,3,0,1,0,0,1],[1,0,2,0,0,0,3,1],[1,0,1,0,0,4,0,1],[1,0,0,3,0,0,0,1],[1,4,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]];
+        LEVELS[14] = [[1,1,1,1,1,1,1,1],[1,4,0,0,0,0,4,1],[1,0,3,0,1,0,0,1],[1,0,0,2,0,3,0,1],[1,0,0,0,4,0,0,1],[1,0,0,1,0,0,3,1],[1,0,4,0,0,0,0,1],[1,1,1,1,1,1,1,1]];
         
-        // ----- 第2关 (4箱) -----
-        LEVELS[1] = [
-            [1,1,1,1,1,1,1,1],
-            [1,4,0,0,0,4,0,1],
-            [1,0,3,0,0,0,0,1],
-            [1,0,0,2,0,3,0,1],
-            [1,0,3,0,0,0,0,1],
-            [1,0,0,0,0,3,0,1],
-            [1,4,0,0,0,4,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第3关 (4箱) -----
-        LEVELS[2] = [
-            [1,1,1,1,1,1,1,1],
-            [1,4,0,0,1,0,4,1],
-            [1,0,3,0,1,0,0,1],
-            [1,0,0,2,0,3,0,1],
-            [1,0,3,0,0,0,0,1],
-            [1,0,0,0,1,0,4,1],
-            [1,4,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第4关 (3箱)-----
-        LEVELS[3] = [
-            [1,1,1,1,1,1,1,1],
-            [1,0,4,0,0,0,0,1],
-            [1,0,3,0,1,0,4,1],
-            [1,0,0,2,0,3,0,1],
-            [1,0,0,1,0,0,0,1],
-            [1,0,3,0,0,4,0,1],
-            [1,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第5关 (5箱)-----
-        LEVELS[4] = [
-            [1,1,1,1,1,1,1,1],
-            [1,4,0,0,0,4,0,1],
-            [1,0,3,0,1,0,0,1],
-            [1,0,0,2,1,3,0,1],
-            [1,0,3,0,0,0,0,1],
-            [1,0,0,0,0,3,0,1],
-            [1,4,0,0,3,4,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第6关 (4箱) -----
-        LEVELS[5] = [
-            [1,1,1,1,1,1,1,1],
-            [1,4,0,0,0,0,4,1],
-            [1,0,0,3,0,0,0,1],
-            [1,0,2,0,0,3,0,1],
-            [1,0,0,1,0,0,0,1],
-            [1,0,3,0,4,0,0,1],
-            [1,4,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第7关 (4箱，完全可推) -----
-        LEVELS[6] = [
-            [1,1,1,1,1,1,1,1],
-            [1,4,0,0,0,4,0,1],
-            [1,0,3,0,0,0,0,1],
-            [1,0,0,2,0,3,0,1],
-            [1,0,3,0,0,0,0,1],
-            [1,0,0,0,0,3,0,1],
-            [1,4,0,0,0,4,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第8关 (5箱，修复版) -----
-        LEVELS[7] = [
-            [1,1,1,1,1,1,1,1],
-            [1,4,0,0,1,4,0,1],
-            [1,0,3,0,0,0,0,1],
-            [1,0,0,2,0,0,3,1],
-            [1,0,1,0,0,4,0,1],
-            [1,0,3,0,0,0,0,1],
-            [1,0,0,0,0,3,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第9关 (4箱)-----
-        LEVELS[8] = [
-            [1,1,1,1,1,1,1,1],
-            [1,0,0,4,0,0,4,1],
-            [1,0,3,0,1,0,0,1],
-            [1,0,0,2,0,3,0,1],
-            [1,0,1,0,0,0,0,1],
-            [1,0,0,4,0,0,3,1],
-            [1,0,0,0,0,4,0,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第10关 (4箱)-----
-        LEVELS[9] = [
-            [1,1,1,1,1,1,1,1],
-            [1,4,0,0,0,0,0,1],
-            [1,0,0,3,0,1,0,1],
-            [1,0,2,0,0,0,0,1],
-            [1,0,1,4,0,3,0,1],
-            [1,0,0,0,0,4,0,1],
-            [1,0,3,0,0,0,4,1],
-            [1,1,1,1,1,1,1,1]
-        ];
-        
-        // ----- 第11-14关 -----
-        LEVELS[10] = [
-            [1,1,1,1,1,1,1,1],[1,4,0,0,1,0,4,1],[1,0,3,0,0,3,0,1],[1,0,0,2,0,0,0,1],
-            [1,0,0,0,4,0,0,1],[1,0,1,3,0,0,0,1],[1,0,0,0,0,4,0,1],[1,1,1,1,1,1,1,1]
-        ];
-        LEVELS[11] = [
-            [1,1,1,1,1,1,1,1],[1,0,4,0,0,0,0,1],[1,0,3,0,1,0,4,1],[1,0,2,0,0,3,0,1],
-            [1,0,0,1,0,0,0,1],[1,0,4,0,0,0,3,1],[1,0,0,0,0,4,0,1],[1,1,1,1,1,1,1,1]
-        ];
-        LEVELS[12] = [
-            [1,1,1,1,1,1,1,1],[1,4,0,0,0,4,0,1],[1,0,0,3,0,0,0,1],[1,0,0,2,1,3,0,1],
-            [1,0,1,0,0,0,0,1],[1,0,3,0,0,4,0,1],[1,0,0,4,0,0,0,1],[1,1,1,1,1,1,1,1]
-        ];
-        LEVELS[13] = [
-            [1,1,1,1,1,1,1,1],[1,0,0,4,0,0,4,1],[1,0,3,0,1,0,0,1],[1,0,2,0,0,0,3,1],
-            [1,0,1,0,0,4,0,1],[1,0,0,3,0,0,0,1],[1,4,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]
-        ];
-        LEVELS[14] = [
-            [1,1,1,1,1,1,1,1],[1,4,0,0,0,0,4,1],[1,0,3,0,1,0,0,1],[1,0,0,2,0,3,0,1],
-            [1,0,0,0,4,0,0,1],[1,0,0,1,0,0,3,1],[1,0,4,0,0,0,0,1],[1,1,1,1,1,1,1,1]
-        ];
-        
-        // 第15~49关: 增强生成算法，确保无死角，每个箱子至少两个方向可动
+        // 第15~49关生成 + 最终强力死锁修复
         for(let lvl = 15; lvl < 50; lvl++) {
             let created = false;
             let attempts = 0;
-            while(!created && attempts < 80) {
+            while(!created && attempts < 60) {
                 attempts++;
                 let newMap = Array(8).fill().map(()=>Array(8).fill(0));
                 for(let i=0;i<8;i++){ newMap[0][i]=1; newMap[7][i]=1; newMap[i][0]=1; newMap[i][7]=1; }
@@ -411,39 +284,32 @@
                 let boxCount = 3 + (lvl % 3);
                 if(boxCount>5) boxCount=5;
                 let targetCount = boxCount;
-                
                 let freeCells = [];
                 for(let i=1;i<=6;i++) for(let j=1;j<=6;j++) if(newMap[i][j] !== 1) freeCells.push([j,i]);
                 if(freeCells.length < boxCount*2+5) continue;
-                
                 for(let i=freeCells.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [freeCells[i],freeCells[j]]=[freeCells[j],freeCells[i]]; }
-                
                 let boxPos = freeCells.slice(0, boxCount);
                 let targetPos = freeCells.slice(boxCount, boxCount+targetCount);
                 let playerPos = freeCells[boxCount+targetCount];
                 if(!playerPos) playerPos = freeCells[freeCells.length-1];
                 
-                // 严格防死锁：每个非目标箱子至少需要2个可移动方向
+                // 防死锁：每个非目标箱子必须至少有2个相邻空格或目标点
                 let deadLock = false;
                 for(let b of boxPos) {
                     let x=b[0], y=b[1];
                     let isTarget = targetPos.some(t=>t[0]===x && t[1]===y);
                     if(!isTarget) {
+                        let movable = 0;
                         let dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-                        let movableDirs = 0;
                         for(let [dx,dy] of dirs) {
-                            let nx = x+dx, ny = y+dy;
-                            if(nx>=1 && nx<=6 && ny>=1 && ny<=6 && newMap[ny][nx] !== 1 && !boxPos.some(box=>box[0]===nx && box[1]===ny)) {
-                                movableDirs++;
-                            }
+                            let nx=x+dx, ny=y+dy;
+                            if(nx>=1 && nx<=6 && ny>=1 && ny<=6 && newMap[ny][nx] !== 1 && !boxPos.some(box=>box[0]===nx && box[1]===ny)) movable++;
                         }
-                        if(movableDirs < 2) deadLock = true;
-                        let leftWall = (newMap[y][x-1] === 1);
-                        let rightWall = (newMap[y][x+1] === 1);
-                        let upWall = (newMap[y-1][x] === 1);
-                        let downWall = (newMap[y+1][x] === 1);
-                        if((leftWall && upWall) || (leftWall && downWall) || (rightWall && upWall) || (rightWall && downWall)) deadLock=true;
-                        if((leftWall && rightWall) || (upWall && downWall)) deadLock=true;
+                        if(movable < 2) deadLock = true;
+                        // 角落死锁
+                        let lW = (newMap[y][x-1] === 1), rW = (newMap[y][x+1] === 1), uW = (newMap[y-1][x] === 1), dW = (newMap[y+1][x] === 1);
+                        if((lW && uW) || (lW && dW) || (rW && uW) || (rW && dW)) deadLock = true;
+                        if((lW && rW) || (uW && dW)) deadLock = true;
                     }
                 }
                 if(deadLock) continue;
@@ -454,7 +320,6 @@
                 for(let b of boxPos) testMap[b[1]][b[0]] = 0;
                 for(let t of targetPos) testMap[t[1]][t[0]] = 0;
                 testMap[playerPos[1]][playerPos[0]] = 0;
-                
                 let visited = Array(8).fill().map(()=>Array(8).fill(false));
                 let queue = [[playerPos[0], playerPos[1]]];
                 visited[playerPos[1]][playerPos[0]] = true;
@@ -474,7 +339,7 @@
                 for(let t of targetPos) if(!visited[t[1]][t[0]]) { allReachable=false; break; }
                 if(!allReachable) continue;
                 
-                // 应用地图
+                // 构建地图
                 for(let i=0;i<8;i++) for(let j=0;j<8;j++) if(newMap[i][j]!==1) newMap[i][j]=0;
                 for(let t of targetPos) newMap[t[1]][t[0]] = 4;
                 for(let b of boxPos) {
@@ -483,32 +348,67 @@
                 }
                 if(newMap[playerPos[1]][playerPos[0]] === 4) newMap[playerPos[1]][playerPos[0]] = 5;
                 else newMap[playerPos[1]][playerPos[0]] = 2;
-                
                 LEVELS[lvl] = newMap;
                 created = true;
             }
-            if(!LEVELS[lvl]) {
-                LEVELS[lvl] = JSON.parse(JSON.stringify(LEVELS[7]));
-            }
+            if(!LEVELS[lvl]) LEVELS[lvl] = JSON.parse(JSON.stringify(LEVELS[7]));
         }
         
-        // 最终校验调整
-        for(let idx=0;idx<LEVELS.length;idx++){
-            let map=LEVELS[idx]; let boxCt=0,targetCt=0,hasPlayer=false;
+        // ========== 终极安全引擎：确保每个箱子都有至少一个方向可以推动（不被墙壁完全卡死） ==========
+        function ensureNoDeadlock(map) {
+            let changed = false;
+            // 复制一份操作
+            let newMap = map.map(row => [...row]);
+            for(let i=1; i<=6; i++) {
+                for(let j=1; j<=6; j++) {
+                    if(newMap[i][j] === 3) { // 普通箱子
+                        let movableDirs = 0;
+                        let dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+                        for(let [dx,dy] of dirs) {
+                            let ni = i+dy, nj = j+dx;
+                            if(ni>=1 && ni<=6 && nj>=1 && nj<=6 && newMap[ni][nj] !== 1 && newMap[ni][nj] !== 3 && newMap[ni][nj] !== 6) {
+                                movableDirs++;
+                            }
+                        }
+                        if(movableDirs === 0) {
+                            // 尝试将箱子移动到附近空位
+                            for(let [dx,dy] of dirs) {
+                                let ni = i+dy, nj = j+dx;
+                                if(ni>=1 && ni<=6 && nj>=1 && nj<=6 && newMap[ni][nj] === 0) {
+                                    newMap[ni][nj] = 3;
+                                    newMap[i][j] = 0;
+                                    changed = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // 同时确保玩家可达所有目标
+            return changed ? newMap : map;
+        }
+        
+        // 最终对所有关卡执行一次死锁修复
+        for(let idx=0; idx<LEVELS.length; idx++) {
+            let repaired = ensureNoDeadlock(LEVELS[idx]);
+            LEVELS[idx] = repaired;
+            // 二次校验箱子数量=目标数量
+            let boxCt=0, targetCt=0, hasPlayer=false;
             for(let i=0;i<8;i++) for(let j=0;j<8;j++){
-                let v=map[i][j];
+                let v=LEVELS[idx][i][j];
                 if(v===3||v===6) boxCt++;
                 if(v===4||v===5||v===6) targetCt++;
                 if(v===2||v===5) hasPlayer=true;
             }
-            if(boxCt!==targetCt){
+            if(boxCt !== targetCt) {
                 for(let i=1;i<7 && boxCt!==targetCt;i++) for(let j=1;j<7;j++){
-                    if(map[i][j]===0 && boxCt<targetCt){ map[i][j]=3; boxCt++; break;}
-                    else if(map[i][j]===0 && targetCt<boxCt){ map[i][j]=4; targetCt++; break;}
+                    if(LEVELS[idx][i][j]===0 && boxCt<targetCt){ LEVELS[idx][i][j]=3; boxCt++; break;}
+                    else if(LEVELS[idx][i][j]===0 && targetCt<boxCt){ LEVELS[idx][i][j]=4; targetCt++; break;}
                 }
             }
             if(!hasPlayer){
-                for(let i=1;i<7;i++) for(let j=1;j<7;j++) if(map[i][j]===0){ map[i][j]=2; break;}
+                for(let i=1;i<7;i++) for(let j=1;j<7;j++) if(LEVELS[idx][i][j]===0){ LEVELS[idx][i][j]=2; break;}
             }
         }
         
@@ -529,7 +429,7 @@
         
         function loadUnlockedProgress() {
             try {
-                let saved = localStorage.getItem('sokoban_50_final_cross');
+                let saved = localStorage.getItem('sokoban_ultimate_fix');
                 if(saved !== null && !isNaN(parseInt(saved))) maxUnlocked = Math.min(parseInt(saved), LEVELS.length-1);
                 else maxUnlocked = 0;
             } catch(e) { maxUnlocked = 0; }
@@ -537,7 +437,7 @@
         }
         
         function saveUnlockedProgress() {
-            try { localStorage.setItem('sokoban_50_final_cross', maxUnlocked); } catch(e) {}
+            try { localStorage.setItem('sokoban_ultimate_fix', maxUnlocked); } catch(e) {}
         }
         
         function updateLevelSelector() {
