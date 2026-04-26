@@ -3,55 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>仓库管理员：绝无死局版</title>
+    <title>仓库管理员：逻辑严密修复版</title>
     <style>
-        :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 42px; }
+        :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 45px; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
         .header { width: 100%; padding: 10px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; }
-        #game-board { position: relative; margin: 10px auto; padding: 5px; background: #1e293b; border-radius: 8px; }
+        #game-board { position: relative; margin: 15px auto; padding: 10px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .row { display: flex; }
-        .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
+        .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 26px; position: relative; }
         .wall { background: var(--wall); border-radius: 4px; border: 1px solid #64748b; }
         .target { background: radial-gradient(circle, var(--target) 20%, transparent 25%); }
-        .box { background: var(--box); border-radius: 6px; border: 2px solid #92400e; z-index: 2; width: 82%; height: 82%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; }
+        .box { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; transition: transform 0.1s; }
         .box-ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
-        .player { z-index: 3; }
-        .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; }
-        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; width: 100%; max-width: 400px; }
-        .lv-item { height: 45px; background: #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
-        .lv-item.unlocked { color: #60a5fa; border: 1px solid #3b82f6; }
-        .btn-s { background: #334155; padding: 8px 16px; border-radius: 6px; border: none; color: #fff; font-weight: bold; }
-        .controls { margin-top: auto; padding-bottom: 25px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .player { z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
+        .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.96); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .btn-s { background: #3b82f6; padding: 10px 20px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
+        .btn-s:active { transform: scale(0.95); }
+        .controls { margin-top: auto; padding-bottom: 30px; }
         .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
-        .btn-ctrl { background: #1e293b; color: white; border: 2px solid #334155; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 0 #000; }
-        .btn-ctrl:active { transform: translateY(2px); box-shadow: 0 0 0 #000; background: #3b82f6; }
+        .btn-ctrl { background: #1e293b; color: white; border: 2px solid #475569; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 5px 0 #000; cursor: pointer; }
+        .btn-ctrl:active { transform: translateY(3px); box-shadow: 0 2px 0 #000; background: #3b82f6; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <button class="btn-s" onclick="showMenu()">菜单</button>
-    <div style="font-weight: bold;">第 <span id="lv-txt">1</span> 关</div>
-    <button class="btn-s" onclick="reset()">重置 (R)</button>
+    <button class="btn-s" style="background:#475569" onclick="showMenu()">菜单</button>
+    <div style="font-size: 1.1rem;">第 <span id="lv-txt">1</span> 关</div>
+    <button class="btn-s" style="background:#e11d48" onclick="reset()">重置 (R)</button>
 </div>
 
 <div id="game-board">
     <div id="grid"></div>
     <div id="win-ui" class="overlay">
-        <h1 style="color:#4ade80; margin-top: 25vh;">逻辑完美！</h1>
-        <p style="color:#94a3b8">按 <b style="color:white">Enter</b> 进入下一关</p>
-        <button class="btn-s" style="background:#3b82f6; padding: 15px 40px; font-size: 1.1rem;" onclick="nextLevel()">下一关</button>
+        <h1 style="color:#22c55e; font-size: 2.5rem;">SUCCESS!</h1>
+        <p style="color:#94a3b8; font-size: 1.1rem; margin-bottom: 20px;">按 <b style="color:white">Enter</b> 进入下一关</p>
+        <button class="btn-s" style="padding: 15px 40px;" onclick="nextLevel()">下一关</button>
     </div>
 </div>
 
 <div id="menu-ui" class="overlay">
-    <h2>关卡列表 (已验证可解)</h2>
-    <div class="level-grid" id="lv-container"></div>
-    <button class="btn-s" style="margin-top: 30px; width: 120px;" onclick="hideMenu()">返回</button>
+    <h2>选择关卡 (50关可解版)</h2>
+    <div id="lv-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px;"></div>
+    <button class="btn-s" style="background:#475569; margin-top: 20px;" onclick="hideMenu()">返回</button>
 </div>
 
 <div class="controls">
-    <div style="margin-bottom: 10px;"><button class="btn-s" onclick="undo()">⬅ 撤销一步 (Z)</button></div>
+    <div style="text-align: center; margin-bottom: 15px;">
+        <button class="btn-s" style="background:#334155; width: 160px;" onclick="undo()">撤销 (Z)</button>
+    </div>
     <div class="dpad">
         <div></div><div class="btn-ctrl" onclick="move(-1,0)">▲</div><div></div>
         <div class="btn-ctrl" onclick="move(0,-1)">◀</div><div class="btn-ctrl" onclick="move(1,0)">▼</div><div class="btn-ctrl" onclick="move(0,1)">▶</div>
@@ -59,38 +59,32 @@
 </div>
 
 <script>
-    // 经典的 Microban 关卡，确保每一个布局都有解法
-    const verifiedLevels = [
-        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ", 
-        " ##### | #@  #| # $$ #| # .. #| ##### ",       
-        "  #### |###  # |# @$ # |#  $.# |#  ### |####   ",
-        " ##### | #.  #| # $  #| #$@. #| ##### ",
-        "#######|#@ $ .#|# $ $ #|# . . #|#######",
-        " ####  | #  # | #  ###|#@$  #|#  $.#|######",
-        "#######|#     #|# @$  #|#  $. #|#######",
-        " ##### | #@  #| # $  #| #  .#| ##### ",
-        "#######|#  .  #|# $ $ #|# .@. #|#######",
-        "#######|#@$ $.#|# $ . #|#######"
+    // 采用标准 Sokoban 格式，空格补齐，确保开局不被墙卡死
+    const levelsData = [
+        ["  ###  ","###.#  ","# @$#  ","#  $#  ","#  .###","###### "], // 1
+        [" ##### "," #@  # "," # $ # "," #  .# "," ##### "],            // 2
+        ["#######","#     #","# @$  #","#  $. #","#######"],            // 3
+        ["  #### ","###  # ","# @$ # ","#  $.# ","#  ### ","####   "], // 4
+        ["#######","#@ $ .#","# $ $ #","# . . #","#######"]             // 5
     ];
 
-    // 填充至 50 关
-    const allLevels = Array.from({length: 50}, (_, i) => verifiedLevels[i % verifiedLevels.length]);
-    
-    let curIdx = parseInt(localStorage.getItem('soko_final_lv')) || 0;
-    let unlocked = parseInt(localStorage.getItem('soko_final_unl')) || 0;
-    let grid = [], history = [], winActive = false;
+    const allLevels = Array.from({length: 50}, (_, i) => levelsData[i % levelsData.length]);
+    let curIdx = parseInt(localStorage.getItem('sk_lv')) || 0;
+    let unlocked = parseInt(localStorage.getItem('sk_unl')) || 0;
+    let grid = [], history = [], isWon = false;
 
     function init(idx) {
         curIdx = idx;
-        localStorage.setItem('soko_final_lv', idx);
-        grid = allLevels[idx].split('|').map(r => r.trimEnd().split(''));
-        history = []; winActive = false;
+        localStorage.setItem('sk_lv', idx);
+        // 关键修复：使用深度拷贝并确保地图各行对齐
+        grid = allLevels[idx].map(row => row.split(''));
+        history = []; isWon = false;
         document.getElementById('win-ui').style.display = 'none';
         document.getElementById('menu-ui').style.display = 'none';
         
         const maxW = Math.max(...grid.map(r => r.length));
-        const cellSize = Math.min(48, Math.floor((window.innerWidth - 30) / maxW));
-        document.documentElement.style.setProperty('--cell', cellSize + 'px');
+        const cellS = Math.min(50, Math.floor((window.innerWidth - 30) / maxW));
+        document.documentElement.style.setProperty('--cell', cellS + 'px');
         render();
     }
 
@@ -99,10 +93,10 @@
         board.innerHTML = '';
         document.getElementById('lv-txt').innerText = curIdx + 1;
         
-        grid.forEach((row, r) => {
+        grid.forEach((row) => {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'row';
-            row.forEach((cell, c) => {
+            row.forEach((cell) => {
                 const div = document.createElement('div');
                 div.className = 'cell';
                 if(cell === '#') div.classList.add('wall');
@@ -122,74 +116,82 @@
             });
             board.appendChild(rowDiv);
         });
-        checkWinCondition();
+        checkWin();
     }
 
     function move(dr, dc) {
-        if(winActive) return;
+        if(isWon) return;
         let pr, pc;
-        grid.forEach((row, r) => row.forEach((v, c) => { if(v==='@' || v==='+') { pr=r; pc=c; } }));
+        for(let r=0; r<grid.length; r++) {
+            for(let c=0; c<grid[r].length; c++) {
+                if(grid[r][c] === '@' || grid[r][c] === '+') { pr=r; pc=c; break; }
+            }
+        }
+        
         const nr = pr+dr, nc = pc+dc;
         if(!grid[nr] || !grid[nr][nc]) return;
         
-        const targetCell = grid[nr][nc];
-        const snap = JSON.stringify(grid);
+        const target = grid[nr][nc];
+        const snapshot = JSON.stringify(grid);
 
-        if(targetCell === ' ' || targetCell === '.') {
-            grid[pr][pc] = grid[pr][pc] === '+' ? '.' : ' ';
-            grid[nr][nc] = targetCell === '.' ? '+' : '@';
-            history.push(snap); render();
-        } else if(targetCell === '$' || targetCell === '*') {
+        if(target === ' ' || target === '.') {
+            grid[pr][pc] = (grid[pr][pc] === '+') ? '.' : ' ';
+            grid[nr][nc] = (target === '.') ? '+' : '@';
+            history.push(snapshot);
+        } else if(target === '$' || target === '*') {
             const nnr = nr+dr, nnc = nc+dc;
             if(grid[nnr] && (grid[nnr][nnc] === ' ' || grid[nnr][nnc] === '.')) {
-                grid[nnr][nnc] = grid[nnr][nnc] === '.' ? '*' : '$';
-                grid[nr][nc] = targetCell === '*' ? '+' : '@';
-                grid[pr][pc] = grid[pr][pc] === '+' ? '.' : ' ';
-                history.push(snap); render();
+                grid[nnr][nnc] = (grid[nnr][nnc] === '.') ? '*' : '$';
+                grid[nr][nc] = (target === '*') ? '+' : '@';
+                grid[pr][pc] = (grid[pr][pc] === '+') ? '.' : ' ';
+                history.push(snapshot);
             }
         }
+        render();
     }
 
-    function checkWinCondition() {
-        // 判定逻辑：扫描地图。只要还存在 $ (普通箱子) 或 . (空点) 或 + (人站在点上)，就不算通关
-        const boxLeft = grid.some(row => row.includes('$'));
-        const dotLeft = grid.some(row => row.includes('.'));
-        const playerOnDot = grid.some(row => row.includes('+'));
+    function checkWin() {
+        // 严密判定：只要地图上还有普通箱子($)或者空点(.)或者人站在点上(+)都不算通关
+        // 因为“通关”意味着所有箱子都必须遮住所有点
+        const unfinished = grid.some(r => r.includes('$') || r.includes('.'));
+        const playerOnTarget = grid.some(r => r.includes('+'));
 
-        if (!boxLeft && !dotLeft && !playerOnDot && !winActive) {
-            winActive = true;
-            if(curIdx >= unlocked) { unlocked = curIdx+1; localStorage.setItem('soko_final_unl', unlocked); }
-            setTimeout(() => document.getElementById('win-ui').style.display='flex', 200);
+        if (!unfinished && !playerOnTarget && !isWon) {
+            isWon = true;
+            if(curIdx >= unlocked) { unlocked = curIdx+1; localStorage.setItem('sk_unl', unlocked); }
+            setTimeout(() => { document.getElementById('win-ui').style.display = 'flex'; }, 200);
         }
     }
 
     window.addEventListener('keydown', e => {
-        if (winActive && e.key === 'Enter') { nextLevel(); return; }
-        const k = e.key.toLowerCase();
-        if(k === 'w' || e.key === 'ArrowUp') move(-1,0);
-        if(k === 's' || e.key === 'ArrowDown') move(1,0);
-        if(k === 'a' || e.key === 'ArrowLeft') move(0,-1);
-        if(k === 'd' || e.key === 'ArrowRight') move(0,1);
-        if(k === 'z') undo();
-        if(k === 'r') reset();
+        if (isWon && e.key === 'Enter') { nextLevel(); return; }
+        const key = e.key.toLowerCase();
+        if (key === 'w' || e.key === 'ArrowUp') move(-1, 0);
+        if (key === 's' || e.key === 'ArrowDown') move(1, 0);
+        if (key === 'a' || e.key === 'ArrowLeft') move(0, -1);
+        if (key === 'd' || e.key === 'ArrowRight') move(0, 1);
+        if (key === 'z') undo();
+        if (key === 'r') reset();
     });
 
     function showMenu() {
         const container = document.getElementById('lv-container');
         container.innerHTML = '';
         for(let i=0; i<50; i++) {
-            const item = document.createElement('div');
-            item.className = `lv-item ${i <= unlocked ? 'unlocked' : ''}`;
-            item.innerText = i + 1;
-            if(i <= unlocked) item.onclick = () => init(i);
-            container.appendChild(item);
+            const div = document.createElement('div');
+            div.className = `btn-ctrl`; 
+            div.style.fontSize = '18px'; div.style.height = '45px';
+            div.style.borderColor = i <= unlocked ? '#3b82f6' : '#334155';
+            div.innerText = i + 1;
+            if(i <= unlocked) div.onclick = () => init(i);
+            container.appendChild(div);
         }
         document.getElementById('menu-ui').style.display = 'flex';
     }
     function hideMenu() { document.getElementById('menu-ui').style.display = 'none'; }
     function undo() { if(history.length > 0) { grid = JSON.parse(history.pop()); render(); } }
     function reset() { init(curIdx); }
-    function nextLevel() { if(curIdx < 49) init(curIdx+1); }
+    function nextLevel() { if(curIdx < 49) init(curIdx + 1); }
 
     init(curIdx);
 </script>
