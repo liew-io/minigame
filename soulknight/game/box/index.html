@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>推箱子经典50关 - 完美可解 | 回车下一关 | 无死局</title>
+    <title>推箱子经典50关 - 完美可解 | 回车下一关</title>
     <style>
         * {
             user-select: none;
@@ -306,15 +306,15 @@
             [1,1,1,1,1,1,1,1]
         ];
         
-        // ----- 第7关 (修复版: 原左上角箱子卡死问题已解决，所有箱子均可推动，4箱4目标) -----
+        // ----- 第7关 (全新设计，绝对无死锁，4箱4目标，所有箱子都有活动空间) -----
         LEVELS[6] = [
             [1,1,1,1,1,1,1,1],
-            [1,0,0,4,0,0,0,1],
-            [1,0,3,0,1,0,4,1],
+            [1,4,0,0,0,4,0,1],
+            [1,0,3,0,1,0,0,1],
             [1,0,0,2,0,3,0,1],
-            [1,0,0,1,0,0,0,1],
-            [1,0,3,0,0,4,0,1],
-            [1,0,0,0,0,0,0,1],
+            [1,0,3,0,0,0,0,1],
+            [1,0,0,0,0,3,0,1],
+            [1,4,0,0,0,4,0,1],
             [1,1,1,1,1,1,1,1]
         ];
         
@@ -376,7 +376,7 @@
             [1,0,0,0,4,0,0,1],[1,0,0,1,0,0,3,1],[1,0,4,0,0,0,0,1],[1,1,1,1,1,1,1,1]
         ];
         
-        // 第15~49关: 增强生成算法，确保每个箱子都有可达路径且无死锁（修复了箱子卡死问题）
+        // 第15~49关: 增强生成算法，确保每个箱子都有可达路径且无死锁
         for(let lvl = 15; lvl < 50; lvl++) {
             let created = false;
             let attempts = 0;
@@ -405,7 +405,7 @@
                 let playerPos = freeCells[boxCount+targetCount];
                 if(!playerPos) playerPos = freeCells[freeCells.length-1];
                 
-                // 连通性检测（玩家、箱子和目标必须在同一连通区域）
+                // 连通性检测
                 let testMap = Array(8).fill().map(()=>Array(8).fill(1));
                 for(let i=0;i<8;i++) for(let j=0;j<8;j++) if(newMap[i][j] !== 1) testMap[i][j] = 0;
                 for(let b of boxPos) testMap[b[1]][b[0]] = 0;
@@ -441,17 +441,14 @@
                         let rightWall = (newMap[y][x+1] === 1);
                         let upWall = (newMap[y-1][x] === 1);
                         let downWall = (newMap[y+1][x] === 1);
-                        // 角落死锁
                         if((leftWall && upWall) || (leftWall && downWall) || (rightWall && upWall) || (rightWall && downWall)) deadLock=true;
-                        // 贴墙且对面是墙的死锁
                         if((leftWall && rightWall) || (upWall && downWall)) deadLock=true;
-                        // 边缘死锁
                         if((x===1 && leftWall) || (x===6 && rightWall) || (y===1 && upWall) || (y===6 && downWall)) deadLock=true;
                     }
                 }
                 if(deadLock) continue;
                 
-                // 额外确保每个箱子至少有一个相邻空位可推（避免出生即死）
+                // 额外确保每个箱子至少有一个相邻空位可推
                 let allMovable = true;
                 for(let b of boxPos) {
                     let x=b[0], y=b[1];
@@ -483,7 +480,7 @@
             }
             // 保底方案：复制第7关的安全模板并微调
             if(!LEVELS[lvl]) {
-                LEVELS[lvl] = JSON.parse(JSON.stringify(LEVELS[6])); // 使用修复后的第7关作为模板
+                LEVELS[lvl] = JSON.parse(JSON.stringify(LEVELS[6]));
                 for(let i=1;i<7 && LEVELS[lvl];i++) {
                     for(let j=1;j<7;j++) {
                         if(LEVELS[lvl][i][j] === 4 && Math.random()>0.6) LEVELS[lvl][i][j]=0;
@@ -541,7 +538,7 @@
         
         function loadUnlockedProgress() {
             try {
-                let saved = localStorage.getItem('sokoban_max_unlocked_fixed7');
+                let saved = localStorage.getItem('sokoban_max_unlocked_final');
                 if(saved !== null && !isNaN(parseInt(saved))) maxUnlocked = Math.min(parseInt(saved), LEVELS.length-1);
                 else maxUnlocked = 0;
             } catch(e) { maxUnlocked = 0; }
@@ -549,7 +546,7 @@
         }
         
         function saveUnlockedProgress() {
-            try { localStorage.setItem('sokoban_max_unlocked_fixed7', maxUnlocked); } catch(e) {}
+            try { localStorage.setItem('sokoban_max_unlocked_final', maxUnlocked); } catch(e) {}
         }
         
         function updateLevelSelector() {
