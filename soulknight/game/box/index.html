@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>仓库管理员：50关多箱修复版</title>
+    <title>推箱子</title>
     <style>
         :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 42px; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
@@ -21,62 +21,62 @@
         .lv-item { height: 45px; background: #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
         .lv-item.unlocked { color: #60a5fa; border: 1px solid #3b82f6; }
         .btn-s { background: #334155; padding: 8px 16px; border-radius: 6px; border: none; color: #fff; font-weight: bold; }
-        .controls { margin-top: auto; padding-bottom: 20px; width: 100%; display: flex; flex-direction: column; align-items: center; }
-        .dpad { display: grid; grid-template-columns: repeat(3, 70px); grid-template-rows: repeat(2, 60px); gap: 10px; }
+        .controls { margin-top: auto; padding-bottom: 25px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
         .btn-ctrl { background: #1e293b; color: white; border: 2px solid #334155; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 0 #000; }
-        .btn-ctrl:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; background: #3b82f6; }
+        .btn-ctrl:active { transform: translateY(2px); box-shadow: 0 0 0 #000; background: #3b82f6; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <button class="btn-s" onclick="showMenu()">菜单</button>
-    <div style="font-weight: bold;">LV: <span id="lv-txt">1</span></div>
-    <button class="btn-s" onclick="reset()">重置</button>
+    <div style="font-weight: bold;">第 <span id="lv-txt">1</span> 关</div>
+    <button class="btn-s" onclick="reset()">重置 (R)</button>
 </div>
 
 <div id="game-board">
     <div id="grid"></div>
     <div id="win-ui" class="overlay">
-        <h1 style="color:#4ade80; margin-top: 25vh;">全部归位！</h1>
-        <button class="btn-s" style="background:#3b82f6; padding: 15px 40px;" onclick="nextLevel()">下一关</button>
+        <h1 style="color:#4ade80; margin-top: 25vh;">通关！</h1>
+        <p style="color:#94a3b8">按 Enter 键进入下一关</p>
+        <button class="btn-s" style="background:#3b82f6; padding: 15px 40px;" onclick="nextLevel()">点击下一关</button>
     </div>
 </div>
 
 <div id="menu-ui" class="overlay">
     <h2>选择关卡</h2>
     <div class="level-grid" id="lv-container"></div>
-    <button class="btn-s" style="margin-top: 30px;" onclick="hideMenu()">关闭</button>
+    <button class="btn-s" style="margin-top: 30px; width: 120px;" onclick="hideMenu()">关闭</button>
 </div>
 
 <div class="controls">
-    <div style="margin-bottom: 10px;"><button class="btn-s" onclick="undo()">⬅ 撤销一步</button></div>
+    <div style="margin-bottom: 10px;"><button class="btn-s" onclick="undo()">⬅ 撤销一步 (Z)</button></div>
     <div class="dpad">
-        <div></div><div class="btn-ctrl" onclick="handleInput(-1,0)">▲</div><div></div>
-        <div class="btn-ctrl" onclick="handleInput(0,-1)">◀</div><div class="btn-ctrl" onclick="handleInput(1,0)">▼</div><div class="btn-ctrl" onclick="handleInput(0,1)">▶</div>
+        <div></div><div class="btn-ctrl" onclick="move(-1,0)">▲</div><div></div>
+        <div class="btn-ctrl" onclick="move(0,-1)">◀</div><div class="btn-ctrl" onclick="move(1,0)">▼</div><div class="btn-ctrl" onclick="move(0,1)">▶</div>
     </div>
 </div>
 
 <script>
-    // 字符图例：#墙, @人, $箱子, .目标, *箱子在目标, +人在目标
-    const levelData = [
-        "#####|#@  #|# $ #|#  .#|#####", // 1个箱子
-        " #####| #@  #| # $$ #| # .. #| #####", // 2个箱子 (修复你的痛点)
-        "#######|#     #|# @$  #|#  $. #|#######",
-        "  #####|###   #|# @$  #|#  $. #|#  ####|####",
-        "#######|#  .  #|# $ $ #|# .@. #|#######" // 2个箱子平衡关
+    const levels = [
+        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ", 
+        " ##### | #@  #| # $$ #| # .. #| ##### ",       
+        "###### |#@  .#|# $ $ #|# .   #|###### ",       
+        "  #### |###  # |# @$ # |#  $.# |#  ### |####   ",
+        "#######|#@ $ .#|# $ $ #|# . . #|#######"
     ];
 
-    const allLevels = Array.from({length: 50}, (_, i) => levelData[i % levelData.length]);
-    let curIdx = parseInt(localStorage.getItem('soko_lv')) || 0;
-    let unlocked = parseInt(localStorage.getItem('soko_unl')) || 0;
-    let grid = [], history = [], win = false;
+    const allLevels = Array.from({length: 50}, (_, i) => levels[i % levels.length]);
+    let curIdx = parseInt(localStorage.getItem('s_lv')) || 0;
+    let unlocked = parseInt(localStorage.getItem('s_unl')) || 0;
+    let grid = [], history = [], isWin = false;
 
     function init(idx) {
         curIdx = idx;
-        localStorage.setItem('soko_lv', idx);
+        localStorage.setItem('s_lv', idx);
         grid = allLevels[idx].split('|').map(r => r.split(''));
-        history = []; win = false;
+        history = []; isWin = false;
         document.getElementById('win-ui').style.display = 'none';
         document.getElementById('menu-ui').style.display = 'none';
         
@@ -114,11 +114,11 @@
             });
             board.appendChild(rowDiv);
         });
-        checkWin();
+        checkVictory();
     }
 
-    function handleInput(dr, dc) {
-        if(win) return;
+    function move(dr, dc) {
+        if(isWin) return;
         let pr, pc;
         grid.forEach((row, r) => row.forEach((v, c) => { if(v==='@' || v==='+') { pr=r; pc=c; } }));
         const nr = pr+dr, nc = pc+dc;
@@ -141,28 +141,34 @@
         }
     }
 
-    function checkWin() {
-        // 核心修复：只有地图上没有普通箱子 '$' 且没有空的目标点 '.' 时才算赢
-        const unfinishedBox = grid.some(row => row.includes('$'));
-        const emptyTarget = grid.some(row => row.includes('.'));
-        // 特殊：如果人正站在目标点上 '+', 也不影响箱子的判断
-        if (!unfinishedBox && !emptyTarget && !win) {
-            win = true;
-            if(curIdx >= unlocked) { unlocked = curIdx+1; localStorage.setItem('soko_unl', unlocked); }
-            setTimeout(() => document.getElementById('win-ui').style.display='flex', 300);
+    function checkVictory() {
+        // 核心判定：只要地图上还有普通箱子 $ 或者空的圆圈 . 或者人站在点上 +，就没赢
+        const boxLeft = grid.some(r => r.includes('$'));
+        const dotLeft = grid.some(r => r.includes('.'));
+        const playerOnDot = grid.some(r => r.includes('+'));
+
+        if (!boxLeft && !dotLeft && !playerOnDot && !isWin) {
+            isWin = true;
+            if(curIdx >= unlocked) { unlocked = curIdx+1; localStorage.setItem('s_unl', unlocked); }
+            setTimeout(() => document.getElementById('win-ui').style.display='flex', 200);
         }
     }
 
-    // 键盘监听修复
+    // 快捷键监听
     window.addEventListener('keydown', e => {
-        switch(e.key) {
-            case 'ArrowUp': case 'w': case 'W': handleInput(-1,0); break;
-            case 'ArrowDown': case 's': case 'S': handleInput(1,0); break;
-            case 'ArrowLeft': case 'a': case 'A': handleInput(0,-1); break;
-            case 'ArrowRight': case 'd': case 'D': handleInput(0,1); break;
-            case 'z': case 'Z': undo(); break;
-            case 'r': case 'R': reset(); break;
+        const k = e.key.toLowerCase();
+        // 1. 如果已经通关，按 Enter 键跳转
+        if (isWin && e.key === 'Enter') {
+            nextLevel();
+            return;
         }
+        // 2. 正常移动逻辑
+        if(k === 'w' || e.key === 'ArrowUp') move(-1,0);
+        if(k === 's' || e.key === 'ArrowDown') move(1,0);
+        if(k === 'a' || e.key === 'ArrowLeft') move(0,-1);
+        if(k === 'd' || e.key === 'ArrowRight') move(0,1);
+        if(k === 'z') undo();
+        if(k === 'r') reset();
     });
 
     function showMenu() {
