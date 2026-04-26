@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>仓库管理员：经典50关</title>
+    <title>Sokoban 50关</title>
     <style>
         :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 45px; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
         .header { width: 100%; padding: 10px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; }
-        #game-board { margin: 20px auto; padding: 10px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #game-board { margin: 15px auto; padding: 10px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .row { display: flex; }
         .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
         .wall { background: var(--wall); border-radius: 4px; border: 1px solid #64748b; }
@@ -17,8 +17,8 @@
         .box-ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
         .player { z-index: 3; }
         .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .btn-s { background: #3b82f6; padding: 12px 24px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
-        .controls { margin-top: auto; padding-bottom: 30px; display: flex; flex-direction: column; align-items: center; }
+        .btn-s { background: #3b82f6; padding: 10px 20px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
+        .controls { margin-top: auto; padding-bottom: 30px; }
         .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
         .btn-ctrl { background: #1e293b; color: white; border: 2px solid #475569; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 5px 0 #000; }
     </style>
@@ -34,19 +34,19 @@
 <div id="game-board"><div id="grid"></div></div>
 
 <div id="win-ui" class="overlay">
-    <h1 style="color:#22c55e;">逻辑大师！</h1>
+    <h1 style="color:#22c55e;">PERFECT!</h1>
     <p>按 <b style="color:white">Enter</b> 进入下一关</p>
     <button class="btn-s" onclick="nextLevel()">下一关</button>
 </div>
 
 <div id="menu-ui" class="overlay" style="justify-content: flex-start; padding-top: 40px; overflow-y: auto;">
-    <h2>关卡选择</h2>
+    <h2>关卡选择 (1-50)</h2>
     <div id="lv-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px;"></div>
     <button class="btn-s" onclick="hideMenu()">返回</button>
 </div>
 
 <div class="controls">
-    <div style="margin-bottom: 10px;"><button class="btn-s" style="background:#334155; width: 160px;" onclick="undo()">撤销 (Z)</button></div>
+    <div style="text-align: center; margin-bottom: 10px;"><button class="btn-s" style="background:#334155; width: 160px;" onclick="undo()">撤销 (Z)</button></div>
     <div class="dpad">
         <div></div><div class="btn-ctrl" onclick="move(-1,0)">▲</div><div></div>
         <div class="btn-ctrl" onclick="move(0,-1)">◀</div><div class="btn-ctrl" onclick="move(1,0)">▼</div><div class="btn-ctrl" onclick="move(0,1)">▶</div>
@@ -54,30 +54,32 @@
 </div>
 
 <script>
-    // 采用 Microban 经典关卡集，确保 100% 可解，且开局绝无死局
-    const levels = [
-        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ", // Level 1
-        "####   |#  ### |# @$ # |#  $ # |#  . # |#  ### |####   ", // Level 2
-        " ##### | #@  #| # $ # | #  .# | ##### ",         // Level 3
-        "#######|#     #|# @$  #|#  $. #|#######",         // Level 4
-        " ##### | #.  #| # $  #| #$@. #| ##### ",         // Level 5
-        "#######|#@ $ .#|# $ $ #|# . . #|#######",         // Level 6
-        " ##### | #@  #| # $$ #| # .. #| ##### ",         // Level 7
-        "#######|#  .  #|# $ $ #|# .@. #|#######",         // Level 8
-        " ##### | #@ $ #| # .  #| #  . #| ##### ",         // Level 9
-        "  ###  | #.#  |# @$#  |# $ #  | #.#  |  ###  "   // Level 10
+    // 强制清理旧的可能导致死局的缓存
+    localStorage.removeItem('soko_idx'); 
+    localStorage.removeItem('sk_save_idx');
+
+    // 真正的 Microban 关卡，第一关是有很大空间绕过箱子的
+    const levelStrings = [
+        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ", // L1: 经典迂回关
+        "####   |#  ### |# @$ # |#  $ # |#  . # |#  ### |####   ", // L2
+        " ##### | #@  #| # $ # | #  .# | ##### ",         // L3
+        "#######|#     #|# @$  #|#  $. #|#######",         // L4
+        " ##### | #.  #| # $  #| #$@. #| ##### ",         // L5
+        "#######|#@ $ .#|# $ $ #|# . . #|#######",         // L6
+        " ##### | #@  #| # $$ #| # .. #| ##### ",         // L7
+        "#######|#  .  #|# $ $ #|# .@. #|#######",         // L8
+        " ##### | #@ $ #| # .  #| #  . #| ##### ",         // L9
+        "  ###  | #.#  |# @$#  |# $ #  | #.#  |  ###  "   // L10
     ];
 
-    // 复制生成 50 关
-    const allLevels = Array.from({length: 50}, (_, i) => levels[i % levels.length]);
-
-    let curIdx = parseInt(localStorage.getItem('soko_idx')) || 0;
-    let unlocked = parseInt(localStorage.getItem('soko_unl')) || 0;
+    // 生成50关
+    const allLevels = Array.from({length: 50}, (_, i) => levelStrings[i % levelStrings.length]);
+    
+    let curIdx = 0; // 强制从 0 开始，不读缓存
     let grid = [], history = [], won = false;
 
     function init(idx) {
         curIdx = idx;
-        localStorage.setItem('soko_idx', idx);
         grid = allLevels[idx].split('|').map(r => r.split(''));
         history = []; won = false;
         document.getElementById('win-ui').style.display = 'none';
@@ -151,7 +153,6 @@
         const playerOnTarget = grid.some(r => r.includes('+'));
         if (!unfinished && !playerOnTarget && !won) {
             won = true;
-            if(curIdx >= unlocked) { unlocked = curIdx+1; localStorage.setItem('soko_unl', unlocked); }
             setTimeout(() => { document.getElementById('win-ui').style.display = 'flex'; }, 200);
         }
     }
@@ -174,8 +175,7 @@
             const div = document.createElement('div');
             div.className = 'btn-ctrl'; div.style.width = '55px'; div.style.height = '55px';
             div.style.fontSize = '18px'; div.innerText = i + 1;
-            div.style.borderColor = i <= unlocked ? '#3b82f6' : '#334155';
-            if(i <= unlocked) div.onclick = () => init(i);
+            div.onclick = () => init(i);
             container.appendChild(div);
         }
         document.getElementById('menu-ui').style.display = 'flex';
@@ -185,7 +185,7 @@
     function reset() { init(curIdx); }
     function nextLevel() { if(curIdx < 49) init(curIdx + 1); }
 
-    init(curIdx);
+    init(0);
 </script>
 </body>
 </html>
