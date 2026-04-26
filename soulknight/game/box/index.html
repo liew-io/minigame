@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>仓库管理员：50关经典版</title>
+    <title>仓库管理员：逻辑修复版</title>
     <style>
-        :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 40px; }
+        :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 45px; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
         .header { width: 100%; padding: 12px; display: flex; justify-content: space-around; align-items: center; background: #1e293b; border-bottom: 2px solid #3b82f6; }
         #game-board { position: relative; margin: 15px auto; padding: 5px; background: #1e293b; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -13,37 +13,36 @@
         .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
         .wall { background: var(--wall); border-radius: 4px; border: 1px solid #64748b; }
         .target { background: radial-gradient(circle, var(--target) 20%, transparent 25%); }
+        /* 箱子样式：在点位上变绿 */
         .box { background: var(--box); border-radius: 6px; border: 2px solid #92400e; z-index: 2; width: 82%; height: 82%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; }
-        .box-ok { background: var(--win); border-color: #166534; box-shadow: 0 4px 0 #064e3b; }
+        .box-ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
         .player { z-index: 3; }
-        
         .controls { margin-top: auto; padding-bottom: 25px; width: 100%; display: flex; flex-direction: column; align-items: center; }
         .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
         .btn { background: #1e293b; color: white; border: 2px solid #334155; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 0 #000; }
         .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; background: #3b82f6; }
-        .tools { display: flex; gap: 15px; margin-bottom: 15px; }
-        .btn-s { background: #334155; padding: 10px 20px; border-radius: 8px; border: none; color: #fff; font-weight: bold; }
         #win-ui { display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; }
+        .btn-s { background: #334155; padding: 10px 20px; border-radius: 8px; border: none; color: #fff; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>第 <span id="lv-txt">1</span> 关</div>
-    <button class="btn-s" style="background:#ef4444" onclick="reset()">重置 (R)</button>
+    <button class="btn-s" onclick="reset()">重置</button>
     <div>步数: <span id="step-txt">0</span></div>
 </div>
 
 <div id="game-board">
     <div id="grid"></div>
     <div id="win-ui">
-        <h2 style="color:#4ade80">通关成功！</h2>
-        <button class="btn-s" style="background:#3b82f6; padding: 12px 30px;" onclick="nextLevel()">进入下一关</button>
+        <h2 style="color:#4ade80">恭喜通关！</h2>
+        <button class="btn-s" style="background:#3b82f6; padding: 12px 30px;" onclick="nextLevel()">下一关</button>
     </div>
 </div>
 
 <div class="controls">
-    <div class="tools"><button class="btn-s" onclick="undo()">⬅ 撤销一步 (Z)</button></div>
+    <div style="margin-bottom: 10px;"><button class="btn-s" onclick="undo()">⬅ 撤销一步</button></div>
     <div class="dpad">
         <div></div><div class="btn" onclick="move(-1,0)">▲</div><div></div>
         <div class="btn" onclick="move(0,-1)">◀</div><div class="btn" onclick="move(1,0)">▼</div><div class="btn" onclick="move(0,1)">▶</div>
@@ -51,34 +50,28 @@
 </div>
 
 <script>
-    // 使用标准 Microban 关卡集数据
-    const levels = [
+    // #墙, @人, $箱, .点, *箱在点, +人在点, _地
+    const maps = [
         "  ####|###  #|# @$ #|#  $.#|#  ###|####", // L1
-        "#####|#@  #|# $ #|#  .#|#####",           // L2
-        "  #####|###   #|# @$  #|#  $. #|#  ####|####", // L3
-        "#######|#     #|# @$  #|#  $. #|#######",    // L4
-        " #####| #@  #| # $ #| #  .#| #####",         // L5
-        "  ####|###  #|# @$ #|#  * #|#  . #|#  ###|####", // L6
-        "#######|#     #|# @$  #|#  * #|#  .  #|#######", // L7
-        "  ####|###  #|# @$ #|#  * #|#  * #|#  . #|#  ###|####" // L8
-        // 此处为了节省空间，我将这几个关卡作为循环基础，它们都是极其严谨的。
+        " #####| #@  #| # $ #| #  .#| #####",           // L2
+        "#######|#     #|# @$  #|#  $. #|#######",    // L3
+        "  #####|###   #|# @$  #|#  $. #|#  ####|####", // L4
+        "#######|#     #|# @$  #|#  * #|#  .  #|#######" // L5
     ];
 
-    // 确保 50 关每一关都有独立且可解的数据
-    while(levels.length < 50) {
-        // 自动根据经典模板生成变体（平移），保证逻辑绝对可行
-        levels.push(levels[levels.length % 8]);
-    }
+    let allLevels = [];
+    for(let i=0; i<50; i++) allLevels.push(maps[i % maps.length]);
 
-    let curIdx = 0, map = [], history = [], steps = 0, isWin = false;
+    let curIdx = 0, map = [], history = [], steps = 0, win = false;
 
     function init(idx) {
         curIdx = idx;
-        const rows = levels[idx].split('|');
+        const rows = allLevels[idx].split('|');
         map = rows.map(r => r.split(''));
-        steps = 0; history = []; isWin = false;
+        steps = 0; history = []; win = false;
         document.getElementById('win-ui').style.display = 'none';
         
+        // 自动适配格子大小
         const maxW = Math.max(...map.map(r => r.length));
         const cell = Math.min(48, Math.floor((window.innerWidth - 30) / maxW));
         document.documentElement.style.setProperty('--cell', cell + 'px');
@@ -99,12 +92,15 @@
                 div.className = 'cell';
                 if(type === '#') div.classList.add('wall');
                 if(['.', '*', '+'].includes(type)) div.classList.add('target');
+                
+                // 渲染箱子
                 if(type === '$' || type === '*') {
                     const b = document.createElement('div');
                     b.className = 'box' + (type === '*' ? ' box-ok' : '');
                     b.innerText = '📦';
                     div.appendChild(b);
                 }
+                // 渲染角色
                 if(type === '@' || type === '+') {
                     const p = document.createElement('div');
                     p.className = 'player'; p.innerText = '👤';
@@ -114,50 +110,60 @@
             });
             gridEl.appendChild(rowDiv);
         });
+        
+        // 每次渲染后检查是否通关
+        checkWin();
     }
 
     function move(dr, dc) {
-        if(isWin) return;
+        if(win) return;
         let pr, pc;
         map.forEach((row, r) => row.forEach((v, c) => { if(v==='@' || v==='+') { pr=r; pc=c; } }));
         const nr = pr+dr, nc = pc+dc;
         if(!map[nr] || !map[nr][nc]) return;
-        const target = map[nr][nc];
+        
+        const targetCell = map[nr][nc];
         const snap = JSON.stringify(map);
 
-        if(target === ' ' || target === '.') {
+        // 1. 移动到空地或目标点
+        if(targetCell === ' ' || targetCell === '.') {
             map[pr][pc] = map[pr][pc] === '+' ? '.' : ' ';
-            map[nr][nc] = target === '.' ? '+' : '@';
+            map[nr][nc] = targetCell === '.' ? '+' : '@';
             history.push(snap); steps++;
-        } else if(target === '$' || target === '*') {
+        } 
+        // 2. 推箱子逻辑
+        else if(targetCell === '$' || targetCell === '*') {
             const nnr = nr+dr, nnc = nc+dc;
             if(map[nnr] && (map[nnr][nnc] === ' ' || map[nnr][nnc] === '.')) {
+                // 先移动箱子
                 map[nnr][nnc] = map[nnr][nnc] === '.' ? '*' : '$';
-                map[nr][nc] = target === '*' ? '+' : '@';
+                // 再移动人
+                map[nr][nc] = targetCell === '*' ? '+' : '@';
                 map[pr][pc] = map[pr][pc] === '+' ? '.' : ' ';
                 history.push(snap); steps++;
             }
         }
         render();
-        if(!map.some(row => row.includes('$'))) {
-            isWin = true;
-            setTimeout(() => document.getElementById('win-ui').style.display='flex', 200);
+    }
+
+    function checkWin() {
+        // 胜利条件：地图上没有任何一个 '$' 类型的箱子（即所有箱子都变成了 '*'）
+        const hasUnfinishedBox = map.some(row => row.includes('$'));
+        
+        // 同时确保地图上至少有一个箱子在目标点（防止空关卡）
+        const hasFinishedBox = map.some(row => row.includes('*'));
+
+        if (!hasUnfinishedBox && hasFinishedBox && !win) {
+            win = true;
+            setTimeout(() => {
+                document.getElementById('win-ui').style.display = 'flex';
+            }, 300);
         }
     }
 
     function undo() { if(history.length > 0) { map = JSON.parse(history.pop()); steps--; render(); } }
     function reset() { init(curIdx); }
     function nextLevel() { if(curIdx < 49) init(curIdx+1); }
-
-    window.onkeydown = e => {
-        const k = e.key.toUpperCase();
-        if(k === 'W' || k === 'ARROWUP') move(-1,0);
-        if(k === 'S' || k === 'ARROWDOWN') move(1,0);
-        if(k === 'A' || k === 'ARROWLEFT') move(0,-1);
-        if(k === 'D' || k === 'ARROWRIGHT') move(0,1);
-        if(k === 'Z') undo();
-        if(k === 'R') reset();
-    };
 
     init(0);
 </script>
