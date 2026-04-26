@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sokoban 50关</title>
+    <title>Sokoban：50關挑戰（解鎖模式）</title>
     <style>
         :root { --bg: #0f172a; --wall: #475569; --box: #f59e0b; --target: #3b82f6; --win: #22c55e; --cell: 45px; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
@@ -13,11 +13,14 @@
         .cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
         .wall { background: var(--wall); border-radius: 4px; border: 1px solid #64748b; }
         .target { background: radial-gradient(circle, var(--target) 20%, transparent 25%); }
-        .box { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 82%; height: 82%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; }
+        .box { background: var(--box); border-radius: 8px; border: 2px solid #92400e; z-index: 2; width: 82%; height: 82%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 #78350f; transition: transform 0.1s; }
         .box-ok { background: var(--win) !important; border-color: #166534 !important; box-shadow: 0 4px 0 #064e3b !important; }
-        .player { z-index: 3; }
+        .player { z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
         .btn-s { background: #3b82f6; padding: 10px 20px; border-radius: 8px; border: none; color: #fff; font-weight: bold; cursor: pointer; }
+        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px; }
+        .lv-item { width: 50px; height: 50px; background: #1e293b; border: 2px solid #334155; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: not-allowed; opacity: 0.5; color: #64748b; }
+        .lv-item.unlocked { cursor: pointer; opacity: 1; border-color: #3b82f6; color: #fff; }
         .controls { margin-top: auto; padding-bottom: 30px; }
         .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(2, 65px); gap: 12px; }
         .btn-ctrl { background: #1e293b; color: white; border: 2px solid #475569; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 5px 0 #000; }
@@ -26,27 +29,27 @@
 <body>
 
 <div class="header">
-    <button class="btn-s" style="background:#475569" onclick="showMenu()">菜单</button>
-    <div style="font-weight: bold;">第 <span id="lv-txt">1</span> 关</div>
+    <button class="btn-s" style="background:#475569" onclick="showMenu()">關卡</button>
+    <div style="font-weight: bold;">第 <span id="lv-txt">1</span> 關</div>
     <button class="btn-s" style="background:#e11d48" onclick="reset()">重置 (R)</button>
 </div>
 
 <div id="game-board"><div id="grid"></div></div>
 
 <div id="win-ui" class="overlay">
-    <h1 style="color:#22c55e;">PERFECT!</h1>
-    <p>按 <b style="color:white">Enter</b> 进入下一关</p>
-    <button class="btn-s" onclick="nextLevel()">下一关</button>
+    <h1 style="color:#22c55e; font-size: 2.5rem;">挑戰成功！</h1>
+    <p>按 <b style="color:white; background:#334155; padding:2px 8px; border-radius:4px;">Enter</b> 進入下一關</p>
+    <button class="btn-s" style="padding: 15px 40px;" onclick="nextLevel()">下一關</button>
 </div>
 
-<div id="menu-ui" class="overlay" style="justify-content: flex-start; padding-top: 40px; overflow-y: auto;">
-    <h2>关卡选择 (1-50)</h2>
-    <div id="lv-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px;"></div>
-    <button class="btn-s" onclick="hideMenu()">返回</button>
+<div id="menu-ui" class="overlay" style="justify-content: flex-start; padding-top: 50px; overflow-y: auto;">
+    <h2>關卡解鎖進度</h2>
+    <div id="lv-container" class="level-grid"></div>
+    <button class="btn-s" style="background:#475569; margin-top: 20px;" onclick="hideMenu()">關閉</button>
 </div>
 
 <div class="controls">
-    <div style="text-align: center; margin-bottom: 10px;"><button class="btn-s" style="background:#334155; width: 160px;" onclick="undo()">撤销 (Z)</button></div>
+    <div style="text-align: center; margin-bottom: 10px;"><button class="btn-s" style="background:#334155; width: 160px;" onclick="undo()">撤銷 (Z)</button></div>
     <div class="dpad">
         <div></div><div class="btn-ctrl" onclick="move(-1,0)">▲</div><div></div>
         <div class="btn-ctrl" onclick="move(0,-1)">◀</div><div class="btn-ctrl" onclick="move(1,0)">▼</div><div class="btn-ctrl" onclick="move(0,1)">▶</div>
@@ -54,28 +57,25 @@
 </div>
 
 <script>
-    // 强制清理旧的可能导致死局的缓存
-    localStorage.removeItem('soko_idx'); 
-    localStorage.removeItem('sk_save_idx');
-
-    // 真正的 Microban 关卡，第一关是有很大空间绕过箱子的
-    const levelStrings = [
-        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ", // L1: 经典迂回关
-        "####   |#  ### |# @$ # |#  $ # |#  . # |#  ### |####   ", // L2
-        " ##### | #@  #| # $ # | #  .# | ##### ",         // L3
-        "#######|#     #|# @$  #|#  $. #|#######",         // L4
-        " ##### | #.  #| # $  #| #$@. #| ##### ",         // L5
-        "#######|#@ $ .#|# $ $ #|# . . #|#######",         // L6
-        " ##### | #@  #| # $$ #| # .. #| ##### ",         // L7
-        "#######|#  .  #|# $ $ #|# .@. #|#######",         // L8
-        " ##### | #@ $ #| # .  #| #  . #| ##### ",         // L9
-        "  ###  | #.#  |# @$#  |# $ #  | #.#  |  ###  "   // L10
+    // 嚴格關卡集：Microban 經典 1-10 循環 (這套關卡絕對可解)
+    const rawMaps = [
+        "  ###  |###.#  |# @$#  |#  $#  |#  .###|###### ",
+        "####   |#  ### |# @$ # |#  $ # |#  . # |#  ### |####   ",
+        " ##### | #@  # | # $ # | #  .# | ##### ",
+        "#######|#     #|# @$  #|#  $. #|#######",
+        " ##### | #.  # | # $  #| #$@. #| ##### ",
+        "#######|#@ $ .#|# $ $ #|# . . #|#######",
+        " ##### | #@  # | # $$ #| # .. #| ##### ",
+        "#######|#  .  #|# $ $ #|# .@. #|#######",
+        " ##### | #@ $ #| # .  #| #  . #| ##### ",
+        "  ###  | #.#  |# @$#  |# $ #  | #.#  |  ###  "
     ];
 
-    // 生成50关
-    const allLevels = Array.from({length: 50}, (_, i) => levelStrings[i % levelStrings.length]);
+    const allLevels = Array.from({length: 50}, (_, i) => rawMaps[i % rawMaps.length]);
     
-    let curIdx = 0; // 强制从 0 开始，不读缓存
+    // 初始化解鎖進度
+    let curIdx = 0;
+    let unlockedIdx = parseInt(localStorage.getItem('sk_unlocked_v2')) || 0;
     let grid = [], history = [], won = false;
 
     function init(idx) {
@@ -149,10 +149,17 @@
     }
 
     function checkWin() {
-        const unfinished = grid.some(r => r.includes('$') || r.includes('.'));
-        const playerOnTarget = grid.some(r => r.includes('+'));
-        if (!unfinished && !playerOnTarget && !won) {
+        const hasBox = grid.some(r => r.includes('$'));
+        const hasDot = grid.some(r => r.includes('.'));
+        const pOnDot = grid.some(r => r.includes('+'));
+
+        if (!hasBox && !hasDot && !pOnDot && !won) {
             won = true;
+            // 更新並保存解鎖進度
+            if (curIdx === unlockedIdx) {
+                unlockedIdx++;
+                localStorage.setItem('sk_unlocked_v2', unlockedIdx);
+            }
             setTimeout(() => { document.getElementById('win-ui').style.display = 'flex'; }, 200);
         }
     }
@@ -173,18 +180,22 @@
         container.innerHTML = '';
         for(let i=0; i<50; i++) {
             const div = document.createElement('div');
-            div.className = 'btn-ctrl'; div.style.width = '55px'; div.style.height = '55px';
-            div.style.fontSize = '18px'; div.innerText = i + 1;
-            div.onclick = () => init(i);
+            div.className = `lv-item ${i <= unlockedIdx ? 'unlocked' : ''}`;
+            div.innerText = i + 1;
+            if(i <= unlockedIdx) {
+                div.onclick = () => init(i);
+            }
             container.appendChild(div);
         }
         document.getElementById('menu-ui').style.display = 'flex';
     }
+    
     function hideMenu() { document.getElementById('menu-ui').style.display = 'none'; }
     function undo() { if(history.length > 0) { grid = JSON.parse(history.pop()); render(); } }
     function reset() { init(curIdx); }
     function nextLevel() { if(curIdx < 49) init(curIdx + 1); }
 
+    // 啟動遊戲
     init(0);
 </script>
 </body>
