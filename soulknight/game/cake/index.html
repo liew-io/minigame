@@ -2,148 +2,182 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>Papa's Tiramisuria</title>
+    <title>Papa's Tiramisuria - Interactive Edition</title>
     <style>
-        :root { --papas-gold: #ffcc00; --papas-brown: #5d4037; }
-        body { font-family: 'Arial', sans-serif; background: #222; color: white; margin: 0; overflow: hidden; }
+        :root { --papas-gold: #ffcc00; --papas-orange: #f39c12; --papas-brown: #5d4037; }
+        body { font-family: 'Comic Sans MS', cursive, sans-serif; background: #333; margin: 0; user-select: none; }
         
-        /* 游戏主容器 */
-        #game-screen { width: 800px; height: 600px; background: #f4ece1; margin: 20px auto; position: relative; border: 8px solid #444; color: #333; }
+        #game-box { width: 800px; height: 600px; background: #fdf2e9; margin: 20px auto; position: relative; border: 10px solid #555; overflow: hidden; }
+
+        /* 顶部看板 */
+        .top-bar { height: 50px; background: var(--papas-brown); display: flex; align-items: center; padding: 0 20px; color: white; justify-content: space-between; }
+
+        /* 订单票据 - 可点击交互 */
+        #ticket { 
+            position: absolute; top: -10px; right: 50px; width: 100px; background: #fff; 
+            border: 2px solid #ddd; padding: 10px; transform: rotate(3deg); transition: 0.3s;
+            cursor: pointer; z-index: 100; box-shadow: 2px 5px 15px rgba(0,0,0,0.2);
+        }
+        #ticket:hover { top: 0px; transform: rotate(0deg) scale(1.1); }
+        .ticket-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
+        /* 工作站区域 */
+        .station { width: 100%; height: 490px; position: relative; display: none; }
+        .active { display: block; }
+
+        /* 制作台：杯子与食材 */
+        #build-area { background: url('https://www.transparenttextures.com/patterns/wood-pattern.png'); }
         
-        /* 顶部导航栏 - 老爹系列经典设计 */
-        #nav-bar { position: absolute; bottom: 0; width: 100%; height: 60px; background: #333; display: flex; justify-content: space-around; align-items: center; }
-        .nav-btn { padding: 10px 25px; background: #666; color: white; cursor: pointer; border-radius: 10px 10px 0 0; border: none; font-weight: bold; }
-        .nav-btn.active { background: var(--papas-gold); color: #000; }
+        .cup-target { 
+            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+            width: 160px; height: 200px; border: 5px solid rgba(93, 64, 55, 0.8);
+            border-top: none; border-radius: 0 0 20px 20px; background: rgba(255,255,255,0.4);
+            display: flex; flex-direction: column-reverse; padding: 5px;
+        }
 
-        /* 工作站控制 */
-        .station { display: none; width: 100%; height: 540px; position: relative; }
-        .station.active { display: block; }
+        .ingredient-tray { 
+            position: absolute; bottom: 10px; width: 100%; height: 80px; 
+            background: rgba(0,0,0,0.1); display: flex; justify-content: center; gap: 30px; align-items: center;
+        }
 
-        /* 订单票据 - 灵魂所在 */
-        #ticket { position: absolute; top: 10px; right: 10px; width: 120px; background: #fff; border: 1px solid #ccc; padding: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 100; transform: rotate(2deg); }
-        .ticket-item { border-bottom: 1px solid #eee; font-size: 12px; padding: 2px; }
+        .draggable-ing { 
+            width: 60px; height: 60px; cursor: grab; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; font-size: 30px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s;
+            position: relative; z-index: 10; background: white; border: 3px solid var(--papas-brown);
+        }
+        .draggable-ing:active { cursor: grabbing; transform: scale(1.1); }
 
-        /* 点餐台 */
-        #order-station { background: url('https://img.freepik.com/free-vector/bakery-shop-interior_23-2148532454.jpg') center/cover; }
-        .customer { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); font-size: 80px; }
+        /* 食材落下动画 */
+        .layer-anim {
+            width: 95%; height: 35px; border-radius: 5px; margin: 2px auto;
+            animation: drop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; text-shadow: 1px 1px 2px #000;
+        }
+        @keyframes drop { from { transform: translateY(-300px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* 制作台设计 */
-        .ingredient-shelf { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 15px; }
-        .ing-btn { width: 70px; height: 70px; border-radius: 50%; border: 4px solid var(--papas-brown); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; background: white; }
-        
-        /* 杯子容器 */
-        #cup-container { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); width: 180px; height: 220px; border: 4px solid #5d4037; border-top: none; display: flex; flex-direction: column-reverse; background: rgba(255,255,255,0.3); border-radius: 0 0 20px 20px; overflow: hidden; }
-        .layer { width: 100%; height: 30px; margin-top: 1px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; transition: all 0.3s; }
-        
-        /* 颜色定义 */
-        .ing-1 { background: #e0c097; color: #5d4037; } /* 饼干 */
-        .ing-2 { background: #3e2723; color: #fff; }    /* 咖啡浸泡 */
-        .ing-3 { background: #fffde7; color: #8d6e63; } /* 奶油 */
-        .ing-4 { background: #4e342e; color: #fff; }    /* 可可粉 */
+        /* 颜色表 */
+        .color-1 { background: #e0c097; } .color-2 { background: #3e2723; } 
+        .color-3 { background: #fffde7; color: #5d4037 !important; } .color-4 { background: #4e342e; }
 
-        /* 提示文字 */
-        .hint { background: var(--papas-gold); padding: 10px; border-radius: 20px; position: absolute; top: 100px; left: 50%; transform: translateX(-50%); }
+        /* 导航 */
+        .nav { position: absolute; bottom: 0; width: 100%; height: 60px; background: #444; display: flex; }
+        .nav-tab { flex: 1; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; border-right: 1px solid #555; }
+        .nav-tab.active-tab { background: var(--papas-orange); color: #000; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="game-screen">
-    <div id="ticket" style="display:none;">
-        <div style="text-align:center; font-weight:bold; border-bottom:2px solid #000;">ORDER</div>
-        <div id="ticket-content"></div>
+<div id="game-box">
+    <div class="top-bar">
+        <span>💰 $ <span id="money-display">0.00</span></span>
+        <span>PAPA'S TIRAMISURIA</span>
     </div>
 
-    <div id="order-station" class="station active">
-        <div class="customer" id="customer">👤</div>
-        <div class="hint" id="order-hint" onclick="startOrder()">点我开始接单</div>
+    <div id="ticket" onclick="this.classList.toggle('expand')">
+        <div style="font-size: 10px; text-align: center; font-weight: bold;">ORDER #1</div>
+        <div id="order-list"></div>
     </div>
 
-    <div id="build-station" class="station">
-        <div id="cup-container"></div>
-        <div class="ingredient-shelf">
-            <div class="ing-btn" onclick="addToCup(1)">🍪<br>饼干</div>
-            <div class="ing-btn" onclick="addToCup(2)">☕<br>浸泡</div>
-            <div class="ing-btn" onclick="addToCup(3)">🍦<br>奶油</div>
-            <div class="ing-btn" onclick="addToCup(4)">🍫<br>可可粉</div>
+    <div id="station-order" class="station active" style="text-align: center; padding-top: 100px;">
+        <div style="font-size: 100px;">👤</div>
+        <button onclick="takeOrder()" style="padding: 15px 30px; font-size: 20px; background: var(--papas-orange); border: none; border-radius: 10px; cursor: pointer; margin-top: 20px;">Take Order</button>
+    </div>
+
+    <div id="station-build" class="station">
+        <div class="cup-target" id="cup" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+            </div>
+
+        <div class="ingredient-tray">
+            <div class="draggable-ing color-1" draggable="true" ondragstart="drag(event, 1)">🍪</div>
+            <div class="draggable-ing color-2" draggable="true" ondragstart="drag(event, 2)">☕</div>
+            <div class="draggable-ing color-3" draggable="true" ondragstart="drag(event, 3)">🍦</div>
+            <div class="draggable-ing color-4" draggable="true" ondragstart="drag(event, 4)">🍫</div>
         </div>
-        <button onclick="submitDish()" style="position:absolute; right:20px; bottom:100px; padding:15px; background: #4caf50; color:white; border-radius: 50%; border:none; cursor:pointer;">完成订单</button>
+
+        <button onclick="finishDish()" style="position: absolute; right: 20px; top: 150px; background: #2ecc71; color: white; border: none; padding: 20px; border-radius: 50%; cursor: pointer; font-weight: bold;">DONE</button>
     </div>
 
-    <div id="nav-bar">
-        <button class="nav-btn active" id="btn-order" onclick="switchStation('order')">Order Station</button>
-        <button class="nav-btn" id="btn-build" onclick="switchStation('build')">Build Station</button>
+    <div class="nav">
+        <div class="nav-tab active-tab" id="tab-order" onclick="switchStation('order')">ORDER</div>
+        <div class="nav-tab" id="tab-build" onclick="switchStation('build')">BUILD</div>
     </div>
 </div>
 
 <script>
-    const ITEMS = {1: "LADYFINGER", 2: "COFFEE SOAK", 3: "CREAM", 4: "COCOA"};
-    let currentOrder = [];
-    let playerCup = [];
-    let isOrdering = false;
+    const NAMES = {1: "Biscotti", 2: "Coffee", 3: "Mascarpone", 4: "Cocoa"};
+    let order = [];
+    let playerStack = [];
+    let money = 0;
 
-    // 1. 切换工作站
-    function switchStation(name) {
-        document.querySelectorAll('.station').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        
-        document.getElementById(name + '-station').classList.add('active');
-        document.getElementById('btn-' + name).classList.add('active');
+    // 1. 切换车站
+    function switchStation(s) {
+        document.querySelectorAll('.station').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active-tab'));
+        document.getElementById('station-' + s).classList.add('active');
+        document.getElementById('tab-' + s).classList.add('active-tab');
     }
 
     // 2. 接单逻辑
-    function startOrder() {
-        if(isOrdering) return;
-        isOrdering = true;
-        document.getElementById('order-hint').innerText = "正在点餐...";
-        
-        // 随机生成老爹风格订单 (Linear 格式)
-        currentOrder = [1, 2, 3, 1, 2, 3, 4]; // 模拟固定高级配方
-        setTimeout(() => {
-            document.getElementById('ticket').style.display = 'block';
-            const content = document.getElementById('ticket-content');
-            content.innerHTML = currentOrder.map(id => `<div class="ticket-item">● ${ITEMS[id]}</div>`).join("");
-            document.getElementById('order-hint').innerText = "订单已挂起，去制作台吧！";
-        }, 1000);
+    function takeOrder() {
+        order = [1, 2, 3, 1, 2, 3, 4]; // 经典 Linear 结构
+        const list = document.getElementById('order-list');
+        list.innerHTML = order.map(id => `
+            <div style="font-size: 11px; margin-top: 5px;">
+                <span class="ticket-dot color-${id}"></span> ${NAMES[id]}
+            </div>
+        `).join("");
+        alert("New Order Received! Go to Build Station.");
+        switchStation('build');
     }
 
-    // 3. 制作逻辑
-    function addToCup(id) {
-        if(!isOrdering) return alert("先去点餐台接单！");
-        playerCup.push(id);
-        const cup = document.getElementById('cup-container');
-        const div = document.createElement('div');
-        div.className = `layer ing-${id}`;
-        div.innerText = ITEMS[id];
-        cup.appendChild(div);
+    // 3. 拖拽交互
+    function drag(ev, id) {
+        ev.dataTransfer.setData("text", id);
     }
 
-    // 4. 判定与评分 (老爹系列的精髓：百分比判定)
-    function submitDish() {
-        if(playerCup.length === 0) return;
-        
-        let score = 0;
-        const correct = JSON.stringify(currentOrder);
-        const player = JSON.stringify(playerCup);
+    function handleDrop(ev) {
+        ev.preventDefault();
+        const id = ev.dataTransfer.getData("text");
+        addLayer(parseInt(id));
+    }
 
-        if(correct === player) {
-            score = 100;
-            alert("Perfect! 💯 \n 顾客给了你极高的小费！");
+    function addLayer(id) {
+        if(order.length === 0) return;
+        playerStack.push(id);
+        const layer = document.createElement('div');
+        layer.className = `layer-anim color-${id}`;
+        layer.innerText = NAMES[id];
+        document.getElementById('cup').appendChild(layer);
+        
+        // 播放音效感（简单的视觉反馈）
+        const trayIng = document.querySelector(`.draggable-ing.color-${id}`);
+        trayIng.style.transform = "scale(0.8)";
+        setTimeout(() => trayIng.style.transform = "scale(1)", 100);
+    }
+
+    // 4. 判定
+    function finishDish() {
+        if(playerStack.length === 0) return;
+        
+        const isCorrect = JSON.stringify(order) === JSON.stringify(playerStack);
+        if(isCorrect) {
+            money += 15.50;
+            alert("Perfect! 🌟 你获得了 $15.50 小费！");
         } else {
-            score = Math.floor(Math.random() * 40) + 10;
-            alert(`Oops! 得分: ${score} \n 顺序错了或者配料不对。`);
+            money += 2.00;
+            alert("Order is wrong... 只有 $2.00 基础费。");
         }
-
-        // 重置游戏状态
-        resetGame();
+        
+        document.getElementById('money-display').innerText = money.toFixed(2);
+        resetRound();
     }
 
-    function resetGame() {
-        playerCup = [];
-        currentOrder = [];
-        isOrdering = false;
-        document.getElementById('cup-container').innerHTML = "";
-        document.getElementById('ticket').style.display = 'none';
-        document.getElementById('order-hint').innerText = "点我开始接单";
+    function resetRound() {
+        playerStack = [];
+        order = [];
+        document.getElementById('cup').innerHTML = "";
+        document.getElementById('order-list').innerHTML = "";
         switchStation('order');
     }
 </script>
