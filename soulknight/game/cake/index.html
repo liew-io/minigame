@@ -2,115 +2,150 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>提拉米苏工坊 - Tiramisu Shop</title>
+    <title>Papa's Tiramisuria</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f4ece1; }
-        #game-container { max-width: 600px; margin: auto; padding: 20px; }
-        .order-card { background: #fff; border: 2px dashed #8d6e63; padding: 10px; margin-bottom: 20px; }
-        .station { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
-        button { padding: 10px 15px; cursor: pointer; background: #8d6e63; color: white; border: none; border-radius: 5px; }
-        button:hover { background: #6d4c41; }
-        #bowl { min-height: 150px; border: 3px solid #5d4037; border-top: none; background: rgba(255,255,255,0.5); 
-                display: flex; flex-direction: column-reverse; align-items: center; padding: 10px; width: 200px; margin: auto; }
-        .layer { width: 100%; height: 20px; margin-bottom: 2px; border-radius: 3px; }
-        /* 食材颜色 */
-        .color-1 { background: #e0c097; } /* 饼干 */
-        .color-2 { background: #3e2723; } /* 咖啡 */
-        .color-3 { background: #fff9c4; } /* 奶油 */
-        .color-4 { background: #4e342e; } /* 可可粉 */
+        :root { --papas-gold: #ffcc00; --papas-brown: #5d4037; }
+        body { font-family: 'Arial', sans-serif; background: #222; color: white; margin: 0; overflow: hidden; }
+        
+        /* 游戏主容器 */
+        #game-screen { width: 800px; height: 600px; background: #f4ece1; margin: 20px auto; position: relative; border: 8px solid #444; color: #333; }
+        
+        /* 顶部导航栏 - 老爹系列经典设计 */
+        #nav-bar { position: absolute; bottom: 0; width: 100%; height: 60px; background: #333; display: flex; justify-content: space-around; align-items: center; }
+        .nav-btn { padding: 10px 25px; background: #666; color: white; cursor: pointer; border-radius: 10px 10px 0 0; border: none; font-weight: bold; }
+        .nav-btn.active { background: var(--papas-gold); color: #000; }
+
+        /* 工作站控制 */
+        .station { display: none; width: 100%; height: 540px; position: relative; }
+        .station.active { display: block; }
+
+        /* 订单票据 - 灵魂所在 */
+        #ticket { position: absolute; top: 10px; right: 10px; width: 120px; background: #fff; border: 1px solid #ccc; padding: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 100; transform: rotate(2deg); }
+        .ticket-item { border-bottom: 1px solid #eee; font-size: 12px; padding: 2px; }
+
+        /* 点餐台 */
+        #order-station { background: url('https://img.freepik.com/free-vector/bakery-shop-interior_23-2148532454.jpg') center/cover; }
+        .customer { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); font-size: 80px; }
+
+        /* 制作台设计 */
+        .ingredient-shelf { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 15px; }
+        .ing-btn { width: 70px; height: 70px; border-radius: 50%; border: 4px solid var(--papas-brown); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; background: white; }
+        
+        /* 杯子容器 */
+        #cup-container { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); width: 180px; height: 220px; border: 4px solid #5d4037; border-top: none; display: flex; flex-direction: column-reverse; background: rgba(255,255,255,0.3); border-radius: 0 0 20px 20px; overflow: hidden; }
+        .layer { width: 100%; height: 30px; margin-top: 1px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; transition: all 0.3s; }
+        
+        /* 颜色定义 */
+        .ing-1 { background: #e0c097; color: #5d4037; } /* 饼干 */
+        .ing-2 { background: #3e2723; color: #fff; }    /* 咖啡浸泡 */
+        .ing-3 { background: #fffde7; color: #8d6e63; } /* 奶油 */
+        .ing-4 { background: #4e342e; color: #fff; }    /* 可可粉 */
+
+        /* 提示文字 */
+        .hint { background: var(--papas-gold); padding: 10px; border-radius: 20px; position: absolute; top: 100px; left: 50%; transform: translateX(-50%); }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <h2>☕ Tiramisu Master ☕</h2>
-    
-    <div class="order-card">
-        <strong>当前订单配方：</strong>
-        <div id="target-order">点击开始接单</div>
-        <p>小费收益: <span id="money">0</span> 元</p>
+<div id="game-screen">
+    <div id="ticket" style="display:none;">
+        <div style="text-align:center; font-weight:bold; border-bottom:2px solid #000;">ORDER</div>
+        <div id="ticket-content"></div>
     </div>
 
-    <div id="bowl">
+    <div id="order-station" class="station active">
+        <div class="customer" id="customer">👤</div>
+        <div class="hint" id="order-hint" onclick="startOrder()">点我开始接单</div>
+    </div>
+
+    <div id="build-station" class="station">
+        <div id="cup-container"></div>
+        <div class="ingredient-shelf">
+            <div class="ing-btn" onclick="addToCup(1)">🍪<br>饼干</div>
+            <div class="ing-btn" onclick="addToCup(2)">☕<br>浸泡</div>
+            <div class="ing-btn" onclick="addToCup(3)">🍦<br>奶油</div>
+            <div class="ing-btn" onclick="addToCup(4)">🍫<br>可可粉</div>
         </div>
-
-    <div class="station">
-        <button onclick="addLayer(1)">🍪 饼干</button>
-        <button onclick="addLayer(2)">☕ 咖啡</button>
-        <button onclick="addLayer(3)">🍦 奶油</button>
-        <button onclick="addLayer(4)">🍫 可可粉</button>
+        <button onclick="submitDish()" style="position:absolute; right:20px; bottom:100px; padding:15px; background: #4caf50; color:white; border-radius: 50%; border:none; cursor:pointer;">完成订单</button>
     </div>
 
-    <div class="station">
-        <button onclick="checkOrder()" style="background: #4caf50;">✅ 完成提交</button>
-        <button onclick="resetBowl()" style="background: #f44336;">🗑️ 重做</button>
-        <button onclick="nextOrder()" style="background: #2196f3;">👤 下一位客人</button>
+    <div id="nav-bar">
+        <button class="nav-btn active" id="btn-order" onclick="switchStation('order')">Order Station</button>
+        <button class="nav-btn" id="btn-build" onclick="switchStation('build')">Build Station</button>
     </div>
 </div>
 
 <script>
-    // 数据定义 (Linear 格式)
-    const ITEMS = {1: "饼干", 2: "咖啡", 3: "奶油", 4: "可可粉"};
+    const ITEMS = {1: "LADYFINGER", 2: "COFFEE SOAK", 3: "CREAM", 4: "COCOA"};
     let currentOrder = [];
-    let playerBowl = [];
-    let money = 0;
+    let playerCup = [];
+    let isOrdering = false;
 
-    // 随机生成订单
-    function nextOrder() {
-        resetBowl();
-        // 随机生成 4-6 层的 Linear 配方
-        currentOrder = [];
-        let length = 4 + Math.floor(Math.random() * 3);
-        for(let i=0; i<length; i++) {
-            currentOrder.push(Math.floor(Math.random() * 4) + 1);
-        }
-        document.getElementById('target-order').innerText = currentOrder.map(id => ITEMS[id]).join(" → ");
+    // 1. 切换工作站
+    function switchStation(name) {
+        document.querySelectorAll('.station').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(name + '-station').classList.add('active');
+        document.getElementById('btn-' + name).classList.add('active');
     }
 
-    // 玩家添加食材
-    function addLayer(id) {
-        if(currentOrder.length === 0) return alert("请先接待下一位客人！");
-        playerBowl.push(id);
-        updateDisplay();
+    // 2. 接单逻辑
+    function startOrder() {
+        if(isOrdering) return;
+        isOrdering = true;
+        document.getElementById('order-hint').innerText = "正在点餐...";
+        
+        // 随机生成老爹风格订单 (Linear 格式)
+        currentOrder = [1, 2, 3, 1, 2, 3, 4]; // 模拟固定高级配方
+        setTimeout(() => {
+            document.getElementById('ticket').style.display = 'block';
+            const content = document.getElementById('ticket-content');
+            content.innerHTML = currentOrder.map(id => `<div class="ticket-item">● ${ITEMS[id]}</div>`).join("");
+            document.getElementById('order-hint').innerText = "订单已挂起，去制作台吧！";
+        }, 1000);
     }
 
-    // 更新碗内显示
-    function updateDisplay() {
-        const bowl = document.getElementById('bowl');
-        bowl.innerHTML = "";
-        playerBowl.forEach(id => {
-            const div = document.createElement('div');
-            div.className = `layer color-${id}`;
-            div.innerText = ITEMS[id];
-            div.style.fontSize = "10px";
-            div.style.color = id === 3 ? "#000" : "#fff";
-            bowl.appendChild(div);
-        });
+    // 3. 制作逻辑
+    function addToCup(id) {
+        if(!isOrdering) return alert("先去点餐台接单！");
+        playerCup.push(id);
+        const cup = document.getElementById('cup-container');
+        const div = document.createElement('div');
+        div.className = `layer ing-${id}`;
+        div.innerText = ITEMS[id];
+        cup.appendChild(div);
     }
 
-    // 判定逻辑
-    function checkOrder() {
-        const targetStr = JSON.stringify(currentOrder);
-        const playerStr = JSON.stringify(playerBowl);
+    // 4. 判定与评分 (老爹系列的精髓：百分比判定)
+    function submitDish() {
+        if(playerCup.length === 0) return;
+        
+        let score = 0;
+        const correct = JSON.stringify(currentOrder);
+        const player = JSON.stringify(playerCup);
 
-        if (targetStr === playerStr) {
-            money += 50;
-            alert("完美！顾客非常满意 💰+50");
-            document.getElementById('money').innerText = money;
-            nextOrder();
+        if(correct === player) {
+            score = 100;
+            alert("Perfect! 💯 \n 顾客给了你极高的小费！");
         } else {
-            alert("味道不对... 顾客拒绝付钱 💢");
-            resetBowl();
+            score = Math.floor(Math.random() * 40) + 10;
+            alert(`Oops! 得分: ${score} \n 顺序错了或者配料不对。`);
         }
+
+        // 重置游戏状态
+        resetGame();
     }
 
-    function resetBowl() {
-        playerBowl = [];
-        updateDisplay();
+    function resetGame() {
+        playerCup = [];
+        currentOrder = [];
+        isOrdering = false;
+        document.getElementById('cup-container').innerHTML = "";
+        document.getElementById('ticket').style.display = 'none';
+        document.getElementById('order-hint').innerText = "点我开始接单";
+        switchStation('order');
     }
-
-    // 初始化第一单
-    nextOrder();
 </script>
 
 </body>
