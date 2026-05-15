@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>提拉米苏工坊 - Tiramisu Shop</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f4ece1; }
+        #game-container { max-width: 600px; margin: auto; padding: 20px; }
+        .order-card { background: #fff; border: 2px dashed #8d6e63; padding: 10px; margin-bottom: 20px; }
+        .station { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+        button { padding: 10px 15px; cursor: pointer; background: #8d6e63; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #6d4c41; }
+        #bowl { min-height: 150px; border: 3px solid #5d4037; border-top: none; background: rgba(255,255,255,0.5); 
+                display: flex; flex-direction: column-reverse; align-items: center; padding: 10px; width: 200px; margin: auto; }
+        .layer { width: 100%; height: 20px; margin-bottom: 2px; border-radius: 3px; }
+        /* 食材颜色 */
+        .color-1 { background: #e0c097; } /* 饼干 */
+        .color-2 { background: #3e2723; } /* 咖啡 */
+        .color-3 { background: #fff9c4; } /* 奶油 */
+        .color-4 { background: #4e342e; } /* 可可粉 */
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h2>☕ Tiramisu Master ☕</h2>
+    
+    <div class="order-card">
+        <strong>当前订单配方：</strong>
+        <div id="target-order">点击开始接单</div>
+        <p>小费收益: <span id="money">0</span> 元</p>
+    </div>
+
+    <div id="bowl">
+        </div>
+
+    <div class="station">
+        <button onclick="addLayer(1)">🍪 饼干</button>
+        <button onclick="addLayer(2)">☕ 咖啡</button>
+        <button onclick="addLayer(3)">🍦 奶油</button>
+        <button onclick="addLayer(4)">🍫 可可粉</button>
+    </div>
+
+    <div class="station">
+        <button onclick="checkOrder()" style="background: #4caf50;">✅ 完成提交</button>
+        <button onclick="resetBowl()" style="background: #f44336;">🗑️ 重做</button>
+        <button onclick="nextOrder()" style="background: #2196f3;">👤 下一位客人</button>
+    </div>
+</div>
+
+<script>
+    // 数据定义 (Linear 格式)
+    const ITEMS = {1: "饼干", 2: "咖啡", 3: "奶油", 4: "可可粉"};
+    let currentOrder = [];
+    let playerBowl = [];
+    let money = 0;
+
+    // 随机生成订单
+    function nextOrder() {
+        resetBowl();
+        // 随机生成 4-6 层的 Linear 配方
+        currentOrder = [];
+        let length = 4 + Math.floor(Math.random() * 3);
+        for(let i=0; i<length; i++) {
+            currentOrder.push(Math.floor(Math.random() * 4) + 1);
+        }
+        document.getElementById('target-order').innerText = currentOrder.map(id => ITEMS[id]).join(" → ");
+    }
+
+    // 玩家添加食材
+    function addLayer(id) {
+        if(currentOrder.length === 0) return alert("请先接待下一位客人！");
+        playerBowl.push(id);
+        updateDisplay();
+    }
+
+    // 更新碗内显示
+    function updateDisplay() {
+        const bowl = document.getElementById('bowl');
+        bowl.innerHTML = "";
+        playerBowl.forEach(id => {
+            const div = document.createElement('div');
+            div.className = `layer color-${id}`;
+            div.innerText = ITEMS[id];
+            div.style.fontSize = "10px";
+            div.style.color = id === 3 ? "#000" : "#fff";
+            bowl.appendChild(div);
+        });
+    }
+
+    // 判定逻辑
+    function checkOrder() {
+        const targetStr = JSON.stringify(currentOrder);
+        const playerStr = JSON.stringify(playerBowl);
+
+        if (targetStr === playerStr) {
+            money += 50;
+            alert("完美！顾客非常满意 💰+50");
+            document.getElementById('money').innerText = money;
+            nextOrder();
+        } else {
+            alert("味道不对... 顾客拒绝付钱 💢");
+            resetBowl();
+        }
+    }
+
+    function resetBowl() {
+        playerBowl = [];
+        updateDisplay();
+    }
+
+    // 初始化第一单
+    nextOrder();
+</script>
+
+</body>
+</html>
