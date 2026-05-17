@@ -3,227 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>提拉米苏大亨 | Tiramisu Tycoon</title>
+    <title>提拉米苏大亨动作版 | Tiramisu Tycoon Action</title>
     <style>
         :root {
-            --bg-color: #f7f1e3;
-            --panel-color: #ffffff;
-            --primary-color: #8d6e63;
-            --text-color: #2c3e50;
-            --accent-color: #2ecc71;
+            --primary: #8d6e63;
+            --dark: #2c3e50;
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #d1ccc0; color: var(--text-color); margin: 0; padding: 20px; }
+        body { font-family: sans-serif; background: #d1ccc0; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; user-select: none; }
         
-        #tycoon-app { max-width: 1000px; background: var(--bg-color); margin: 0 auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow: hidden; border: 4px solid var(--primary-color); }
+        /* 游戏看板 */
+        #hud { width: 800px; background: var(--dark); color: white; padding: 10px 20px; display: flex; justify-content: space-between; border-radius: 8px 8px 0 0; box-sizing: border-box; font-weight: bold; }
         
-        /* 顶部状态栏 */
-        .status-bar { background: var(--primary-color); color: white; padding: 15px 25px; display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; }
+        /* 游戏主舞台 */
+        #stage-container { position: relative; width: 800px; height: 450px; background: #f7f1e3; border: 4px solid var(--primary); box-sizing: border-box; }
+        canvas { display: block; background: #f1e7dc; }
+
+        /* 浮动UI弹窗（靠近相应区域时按E触发） */
+        .modal-panel { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 350px; background: white; border: 3px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 10; }
+        .modal-panel h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 5px; }
         
-        /* 核心布局 */
-        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; height: 480px; overflow-y: auto; }
-        .panel { background: var(--panel-color); padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h3 { margin-top: 0; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; color: var(--primary-color); }
-        
-        /* 表格与列表 */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
-        
-        /* 按钮设计 */
-        .btn { background: var(--primary-color); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .close-btn { float: right; cursor: pointer; font-weight: bold; color: #999; }
+        .close-btn:hover { color: red; }
+
+        /* 操作按钮 */
+        .btn { background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn:hover { opacity: 0.9; }
-        .btn-green { background: var(--accent-color); font-size: 16px; padding: 12px; width: 100%; border-radius: 8px; }
+
+        /* 游戏历史日志 */
+        #log-panel { width: 800px; height: 80px; background: #34495e; color: #2ecc71; font-family: monospace; font-size: 11px; padding: 8px; overflow-y: auto; box-sizing: border-box; border-radius: 0 0 8px 8px; }
         
-        /* 厨房设备特殊样式 */
-        .upgrade-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        
-        /* 日志日志 */
-        #shop-log { height: 100px; background: #2c3e50; color: #1abc9c; padding: 10px; font-family: monospace; font-size: 12px; overflow-y: scroll; border-radius: 4px; margin: 0 20px 20px 20px; }
+        /* 屏幕提示 */
+        #action-prompt { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 14px; pointer-events: none; display: none; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div id="tycoon-app">
-    <div class="status-bar">
-        <span>📅 第 <span id="day-txt">1</span> 天 (运营中)</span>
-        <span>💰 资金: $<span id="money-txt">500.00</span></span>
-        <span>⭐ 声誉: <span id="rep-txt">100</span>%</span>
+<div id="hud">
+    <span>📅 第 <span id="day-txt">1</span> 天</span>
+    <span>💰 资金: $<span id="money-txt">500.00</span></span>
+    <span>🍰 货架成品: <span id="product-txt">0</span> 个</span>
+    <span>⭐ 声誉: <span id="rep-txt">100</span>%</span>
+</div>
+
+<div id="stage-container">
+    <canvas id="gameCanvas" width="792" height="442"></canvas>
+    
+    <div id="action-prompt">按 【E】 键打开互动</div>
+
+    <div id="modal-supply" class="modal-panel">
+        <span class="close-btn" onclick="closeAllModals()">×</span>
+        <h3>📦 原材料采购仓库</h3>
+        <p>饼干库存: <span id="inv-biscuit">10</span> <button class="btn" onclick="buyMaterial('biscuit', 1.5)">进货 1份 ($1.5)</button></p>
+        <p>奶油库存: <span id="inv-cream">10</span> <button class="btn" onclick="buyMaterial('cream', 2.5)">进货 1份 ($2.5)</button></p>
+        <p>可可粉库存: <span id="inv-cocoa">10</span> <button class="btn" onclick="buyMaterial('cocoa', 1.0)">进货 1份 ($1.0)</button></p>
     </div>
 
-    <div class="main-grid">
-        <div class="panel">
-            <h3>📦 原材料采购 (进货)</h3>
-            <table>
-                <tr><th>材料</th><th>库存</th><th>市场单价</th><th>操作</th></tr>
-                <tr><td>🍪 手指饼干</td><td><span id="inv-biscuit">10</span> 份</td><td>$1.50</td><td><button class="btn" onclick="buyMaterial('biscuit', 1.50)">购买 1 份</button></td></tr>
-                <tr><td>🍦 马斯卡彭</td><td><span id="inv-cream">10</span> 份</td><td>$2.50</td><td><button class="btn" onclick="buyMaterial('cream', 2.50)">购买 1 份</button></td></tr>
-                <tr><td>🍫 顶级可可粉</td><td><span id="inv-cocoa">10</span> 份</td><td>$1.00</td><td><button class="btn" onclick="buyMaterial('cocoa', 1.00)">购买 1 份</button></td></tr>
-            </table>
-            <p style="font-size: 12px; color: #7f8c8d;">* 提示：库存不足时无法开门营业或制作甜品。</p>
-        </div>
-
-        <div class="panel">
-            <h3>🍳 厨房管理与升级</h3>
-            <div class="upgrade-row">
-                <div>
-                    <strong>自动搅拌机</strong> (当前级别: <span id="level-mixer">1</span>)<br>
-                    <small>提升生产效率，降低奶油消耗</small>
-                </div>
-                <button class="btn" onclick="upgradeEquipment('mixer')">升级 ($150)</button>
-            </div>
-            <div class="upgrade-row">
-                <div>
-                    <strong>高速专业烤箱</strong> (当前级别: <span id="level-oven">1</span>)<br>
-                    <small>缩短制作周期，提升饼干口感</small>
-                </div>
-                <button class="btn" onclick="upgradeEquipment('oven')">升级 ($200)</button>
-            </div>
-            <div style="margin-top: 20px;">
-                <strong>当前货架成品：</strong> 
-                <span style="font-size: 20px;" id="product-count">0</span> 个提拉米苏
-                <button class="btn" style="float:right;" onclick="bakeTiramisu()">投入材料制作 (+1)</button>
-            </div>
-        </div>
-
-        <div class="panel" style="grid-column: span 2;">
-            <h3>📊 售卖与市场策略</h3>
-            <div style="display: flex; justify-content: space-around; align-items: center; background: #fdfdfd; padding: 15px; border-radius: 6px;">
-                <div>
-                    <label>💰 单个售价设定: </label>
-                    <input type="number" id="price-input" value="12.00" step="0.5" style="width: 80px; padding: 5px; font-weight: bold; text-align: center;"> 元
-                </div>
-                <div style="font-size: 14px; color: #555;">
-                    💡 市场建议价: $10.00 ~ $15.00 (定价过高会导致顾客嫌贵不买，影响声誉)
-                </div>
-            </div>
-        </div>
+    <div id="modal-kitchen" class="modal-panel">
+        <span class="close-btn" onclick="closeAllModals()">×</span>
+        <h3>🍳 甜品烘烤工坊</h3>
+        <p>消耗: 饼干x1, 奶油x1, 可可粉x1</p>
+        <button class="btn" style="width:100%; padding:10px; background:#e67e22;" onclick="bakeTiramisu()">投入材料制作 1份提拉米苏</button>
     </div>
 
-    <div style="padding: 0 20px 10px 20px;">
-        <button class="btn btn-green" onclick="endDay()">🏁 结束今天营业，结算账目</button>
-    </div>
-
-    <div id="shop-log">
-        [系统通知] 欢迎来到你的提拉米苏工坊。你的初始资金为 $500.00，请先检查进货，然后制作甜品并点击结算！<br>
+    <div id="modal-counter" class="modal-panel">
+        <span class="close-btn" onclick="closeAllModals()">×</span>
+        <h3>📊 售卖前台与定价</h3>
+        <p>当前单价售价：<input type="number" id="price-input" value="12.00" step="0.5" style="width:60px;"> 元</p>
+        <button class="btn" style="width:100%; padding:10px; background:#2ecc71;" onclick="endDay()">🏁 结束今天营业并结算</button>
     </div>
 </div>
 
+<div id="log-panel" id="log-box">
+    [系统通知] 使用键盘【W A S D】控制甜品师移动。分别走到三个彩色工作区，按【E】键可以进行进货、制造和卖货结算！
+</div>
+
 <script>
-    // 核心经营状态数据 (模拟器模型)
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // 经营核心状态
     let gameState = {
-        day: 1,
-        money: 500.00,
-        reputation: 100,
+        day: 1, money: 500.00, reputation: 100,
         inventory: { biscuit: 10, cream: 10, cocoa: 10 },
-        products: 0,
-        upgrades: { mixer: 1, oven: 1 }
+        products: 0
     };
 
-    // 记录日志
+    // 玩家小人（动作引擎数据）
+    let player = { x: 400, y: 220, speed: 4, size: 20 };
+    let keys = {};
+
+    // 区域定义（碰撞箱）
+    const zones = {
+        supply: { x: 50, y: 50, w: 120, h: 100, color: '#3498db', name: '仓库 (进货)' },
+        kitchen: { x: 50, y: 280, w: 120, h: 100, color: '#e67e22', name: '厨房 (制造)' },
+        counter: { x: 620, y: 160, w: 120, h: 140, color: '#2ecc71', name: '前台 (售卖)' }
+    };
+
+    let activeZone = null;
+
+    // 键盘监听
+    window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if(e.key.toLowerCase() === 'e') triggerAction(); });
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
     function log(msg) {
-        const logBox = document.getElementById('shop-log');
-        logBox.innerHTML += `[Day ${gameState.day}] ${msg}<br>`;
-        logBox.scrollTop = logBox.scrollHeight;
+        const panel = document.getElementById('log-panel');
+        panel.innerHTML += `<br>[第${gameState.day}天] ${msg}`;
+        panel.scrollTop = panel.scrollHeight;
     }
 
-    // 更新前端视图
-    function updateUI() {
-        document.getElementById('day-txt').innerText = gameState.day;
-        document.getElementById('money-txt').innerText = gameState.money.toFixed(2);
-        document.getElementById('rep-txt').innerText = gameState.reputation;
-        
-        document.getElementById('inv-biscuit').innerText = gameState.inventory.biscuit;
-        document.getElementById('inv-cream').innerText = gameState.inventory.cream;
-        document.getElementById('inv-cocoa').innerText = gameState.inventory.cocoa;
-        
-        document.getElementById('level-mixer').innerText = gameState.upgrades.mixer;
-        document.getElementById('level-oven').innerText = gameState.upgrades.oven;
-        document.getElementById('product-count').innerText = gameState.products;
+    function closeAllModals() {
+        document.querySelectorAll('.modal-panel').forEach(m => m.style.display = 'none');
     }
 
-    // 1. 进货逻辑
+    // 触发E键交互
+    function triggerAction() {
+        if (!activeZone) return;
+        closeAllModals();
+        document.getElementById(`modal-${activeZone}`).style.display = 'block';
+    }
+
+    // 经营业务：进货
     function buyMaterial(type, price) {
         if (gameState.money >= price) {
             gameState.money -= price;
-            gameState.inventory[type] += 1;
+            gameState.inventory[type]++;
             updateUI();
-        } else {
-            alert("资金不足，无法进货！");
-        }
+        } else { alert("钱不够了！"); }
     }
 
-    // 2. 制造逻辑 (配方堆叠消耗)
+    // 经营业务：制造
     function bakeTiramisu() {
         if (gameState.inventory.biscuit >= 1 && gameState.inventory.cream >= 1 && gameState.inventory.cocoa >= 1) {
-            // 消耗原材料
-            gameState.inventory.biscuit -= 1;
-            gameState.inventory.cream -= 1;
-            gameState.inventory.cocoa -= 1;
-            
-            // 生产成品 (受烤箱等级加成)
-            gameState.products += 1;
-            log("生产工坊制作了一份新鲜的提拉米苏 🍰");
+            gameState.inventory.biscuit--;
+            gameState.inventory.cream--;
+            gameState.inventory.cocoa--;
+            gameState.products++;
+            log("在厨房手工做了一份提拉米苏 🍰");
             updateUI();
-        } else {
-            alert("原材料不足，无法制作！请先去左侧进货。");
-        }
+        } else { alert("原材料不够！"); }
     }
 
-    // 3. 升级厨房逻辑
-    function upgradeEquipment(type) {
-        let cost = type === 'mixer' ? 150 : 200;
-        if (gameState.money >= cost) {
-            gameState.money -= cost;
-            gameState.upgrades[type] += 1;
-            log(`成功升级设备！${type === 'mixer' ? '自动搅拌机' : '高速专业烤箱'} 已提升至 LV.${gameState.upgrades[type]}`);
-            updateUI();
-        } else {
-            alert("升级费用不足！");
-        }
-    }
-
-    // 4. 核心售卖结算算法 (真实模拟器公式)
+    // 经营业务：售卖结算
     function endDay() {
         let price = parseFloat(document.getElementById('price-input').value);
-        if (isNaN(price) || price <= 0) return alert("请设定合法的售价！");
-
-        log("--- 开始今天的夜间账目盘点 ---");
+        let demand = price > 15 ? 0.3 : (price > 11 ? 0.8 : 1.3);
+        let buyers = Math.floor((Math.random() * 6 + 2) * demand);
+        let sold = Math.min(buyers, gameState.products);
         
-        // 顾客购买欲望公式：基于基础售价和声誉
-        let demandFactor = 1.0;
-        if (price > 15) demandFactor = 0.3; // 定价太高，没人买
-        else if (price > 12) demandFactor = 0.7;
-        else if (price < 8) demandFactor = 1.4; // 薄利多销
-
-        // 实际卖出的数量
-        let potentialSales = Math.floor((Math.random() * 5 + 3) * demandFactor * (gameState.reputation / 100));
-        let actualSales = Math.min(potentialSales, gameState.products);
+        let rev = sold * price;
+        gameState.money += rev;
+        gameState.products -= sold;
         
-        // 营业额计算
-        let revenue = actualSales * price;
-        gameState.money += revenue;
-        gameState.products -= actualSales;
-
-        // 声誉惩罚与奖励机制
-        if (price > 16) {
-            gameState.reputation = Math.max(50, gameState.reputation - 10);
-            log(`⚠️ 定价太黑，引发食客极度不满，商铺声誉大幅下跌！`);
-        } else if (actualSales > 0 && price <= 11) {
-            gameState.reputation = Math.min(120, gameState.reputation + 5);
-            log(`🥰 价格厚道，收到了食客的广泛好评，声誉回升。`);
-        }
-
-        log(`📈 今日成功售出 ${actualSales} 份甜品。总营业额: +$${revenue.toFixed(2)}`);
-        if (actualSales < potentialSales) {
-            log(`📉 提示：今天有 ${potentialSales - actualSales} 位顾客因为货架空空而离开。请保证产能！`);
-        }
-
-        // 铺垫下一天
-        gameState.day += 1;
+        log(`开门营业结束。今天卖出 ${sold} 份，营业额：+$${rev.toFixed(2)}`);
+        gameState.day++;
+        closeAllModals();
         updateUI();
     }
 
-    // 初始化
+    function updateUI() {
+        document.getElementById('day-txt').innerText = gameState.day;
+        document.getElementById('money-txt').innerText = gameState.money.toFixed(2);
+        document.getElementById('product-txt').innerText = gameState.products;
+        document.getElementById('rep-txt').innerText = gameState.reputation;
+
+        document.getElementById('inv-biscuit').innerText = gameState.inventory.biscuit;
+        document.getElementById('inv-cream').innerText = gameState.inventory.cream;
+        document.getElementById('inv-cocoa').innerText = gameState.inventory.cocoa;
+    }
+
+    // 每一帧的动作逻辑更新（60FPS）
+    function updatePhysics() {
+        // WASD 移动
+        if (keys['w'] || keys['arrowup']) player.y -= player.speed;
+        if (keys['s'] || keys['arrowdown']) player.y += player.speed;
+        if (keys['a'] || keys['arrowleft']) player.x -= player.speed;
+        if (keys['d'] || keys['arrowright']) player.x += player.speed;
+
+        // 边界限制
+        player.x = Math.max(0, Math.min(canvas.width - player.size, player.x));
+        player.y = Math.max(0, Math.min(canvas.height - player.size, player.y));
+
+        // 碰撞检查：判断玩家在哪一个工作区
+        activeZone = null;
+        for (let key in zones) {
+            let z = zones[key];
+            if (player.x < z.x + z.w && player.x + player.size > z.x &&
+                player.y < z.y + z.h && player.y + player.size > z.y) {
+                activeZone = key;
+            }
+        }
+
+        // 显示或隐藏按E提示
+        const prompt = document.getElementById('action-prompt');
+        if (activeZone) {
+            prompt.style.display = 'block';
+            prompt.innerText = `已进入【${zones[activeZone].name}】，按 E 键管理`;
+        } else {
+            prompt.style.display = 'none';
+        }
+    }
+
+    // 渲染游戏画面
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. 画地板网格
+        ctx.strokeStyle = '#e9decb';
+        ctx.lineWidth = 1;
+        for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
+        for(let j=0; j<canvas.height; j+=40) { ctx.beginPath(); ctx.moveTo(0,j); ctx.lineTo(canvas.width,j); ctx.stroke(); }
+
+        // 2. 画三个工作区域（设备台）
+        for (let key in zones) {
+            let z = zones[key];
+            ctx.fillStyle = z.color;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+            
+            // 区域阴影和边框
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+
+            // 文字标识
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillText(z.name, z.x + 10, z.y + z.h / 2 + 5);
+        }
+
+        // 3. 画玩家控制的甜品师
+        ctx.fillStyle = '#e74c3c'; // 红衣服
+        ctx.fillRect(player.x, player.y, player.size, player.size);
+        
+        // 画厨师帽视觉细节
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(player.x + 2, player.y - 6, player.size - 4, 6);
+    }
+
+    // 游戏主循环
+    function gameLoop() {
+        updatePhysics();
+        render();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // 启动游戏
     updateUI();
+    gameLoop();
 </script>
 
 </body>
