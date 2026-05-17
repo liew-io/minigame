@@ -3,38 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>提拉米苏大亨动作版 | Tiramisu Tycoon Action</title>
+    <title>提拉米苏大亨：终极动作模拟器</title>
     <style>
         :root {
             --primary: #8d6e63;
             --dark: #2c3e50;
+            --success: #2ecc71;
         }
-        body { font-family: sans-serif; background: #d1ccc0; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; user-select: none; }
+        body { font-family: 'Courier New', Courier, monospace; background: #2c3e50; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; user-select: none; color: #333; }
         
-        /* 游戏看板 */
-        #hud { width: 800px; background: var(--dark); color: white; padding: 10px 20px; display: flex; justify-content: space-between; border-radius: 8px 8px 0 0; box-sizing: border-box; font-weight: bold; }
+        /* 顶部HUD */
+        #hud { width: 800px; background: #1a252f; color: white; padding: 12px 20px; display: flex; justify-content: space-between; border-radius: 8px 8px 0 0; box-sizing: border-box; font-weight: bold; font-size: 14px; border-bottom: 3px solid var(--primary); }
         
-        /* 游戏主舞台 */
-        #stage-container { position: relative; width: 800px; height: 450px; background: #f7f1e3; border: 4px solid var(--primary); box-sizing: border-box; }
-        canvas { display: block; background: #f1e7dc; }
+        /* 舞台 */
+        #stage-container { position: relative; width: 800px; height: 450px; background: #f1e7dc; box-sizing: border-box; }
+        canvas { display: block; background: #f5f0ea; box-shadow: inset 0 0 40px rgba(0,0,0,0.08); }
 
-        /* 浮动UI弹窗（靠近相应区域时按E触发） */
-        .modal-panel { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 350px; background: white; border: 3px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 10; }
-        .modal-panel h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 5px; }
-        
-        .close-btn { float: right; cursor: pointer; font-weight: bold; color: #999; }
-        .close-btn:hover { color: red; }
+        /* 弹窗样式 */
+        .modal-panel { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 360px; background: white; border: 4px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); z-index: 10; }
+        .modal-panel h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 8px; text-align: center; }
+        .close-btn { float: right; cursor: pointer; font-weight: bold; color: #999; font-size: 20px; }
+        .close-btn:hover { color: #e74c3c; }
 
-        /* 操作按钮 */
-        .btn { background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn:hover { opacity: 0.9; }
+        .btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
+        .btn:hover { background: #70554c; }
 
-        /* 游戏历史日志 */
-        #log-panel { width: 800px; height: 80px; background: #34495e; color: #2ecc71; font-family: monospace; font-size: 11px; padding: 8px; overflow-y: auto; box-sizing: border-box; border-radius: 0 0 8px 8px; }
+        /* QTE 小游戏专属核心 UI */
+        #qte-wrapper { display: none; text-align: center; margin-top: 15px; background: #eee; padding: 10px; border-radius: 5px; }
+        #qte-bar { position: relative; width: 100%; height: 24px; background: #ccc; border-radius: 12px; overflow: hidden; border: 2px solid #555; }
+        #qte-perfect { position: absolute; left: 40%; width: 20%; height: 100%; background: var(--success); }
+        #qte-pointer { position: absolute; left: 0%; width: 6px; height: 100%; background: #e74c3c; box-shadow: 0 0 5px #000; }
+
+        /* 操作日志 */
+        #log-panel { width: 800px; height: 90px; background: #1a252f; color: #2ecc71; font-size: 12px; padding: 10px; overflow-y: auto; box-sizing: border-box; border-radius: 0 0 8px 8px; line-height: 1.5; border-top: 1px solid #34495e; }
         
-        /* 屏幕提示 */
-        #action-prompt { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 14px; pointer-events: none; display: none; animation: pulse 1s infinite alternate; }
-        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
+        #action-prompt { position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 13px; pointer-events: none; display: none; border: 1px solid var(--primary); }
     </style>
 </head>
 <body>
@@ -43,213 +46,357 @@
     <span>📅 第 <span id="day-txt">1</span> 天</span>
     <span>💰 资金: $<span id="money-txt">500.00</span></span>
     <span>🍰 货架成品: <span id="product-txt">0</span> 个</span>
-    <span>⭐ 声誉: <span id="rep-txt">100</span>%</span>
+    <span>👥 排队顾客: <span id="customer-txt">0</span> 位</span>
 </div>
 
 <div id="stage-container">
-    <canvas id="gameCanvas" width="792" height="442"></canvas>
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
     
-    <div id="action-prompt">按 【E】 键打开互动</div>
+    <div id="action-prompt">提示</div>
 
     <div id="modal-supply" class="modal-panel">
         <span class="close-btn" onclick="closeAllModals()">×</span>
-        <h3>📦 原材料采购仓库</h3>
-        <p>饼干库存: <span id="inv-biscuit">10</span> <button class="btn" onclick="buyMaterial('biscuit', 1.5)">进货 1份 ($1.5)</button></p>
-        <p>奶油库存: <span id="inv-cream">10</span> <button class="btn" onclick="buyMaterial('cream', 2.5)">进货 1份 ($2.5)</button></p>
-        <p>可可粉库存: <span id="inv-cocoa">10</span> <button class="btn" onclick="buyMaterial('cocoa', 1.0)">进货 1份 ($1.0)</button></p>
+        <h3>📦 进货管理仓库</h3>
+        <table style="width:100%; margin-bottom:10px;">
+            <tr><td>🍪 饼干 (<span id="inv-biscuit">10</span>)</td><td><button class="btn" style="width:auto;" onclick="buyMaterial('biscuit', 1.5)">买1份 ($1.5)</button></td></tr>
+            <tr><td>🍦 奶油 (<span id="inv-cream">10</span>)</td><td><button class="btn" style="width:auto;" onclick="buyMaterial('cream', 2.5)">买1份 ($2.5)</button></td></tr>
+            <tr><td>🍫 可可 (<span id="inv-cocoa">10</span>)</td><td><button class="btn" style="width:auto;" onclick="buyMaterial('cocoa', 1.0)">买1份 ($1.0)</button></td></tr>
+        </table>
     </div>
 
     <div id="modal-kitchen" class="modal-panel">
         <span class="close-btn" onclick="closeAllModals()">×</span>
-        <h3>🍳 甜品烘烤工坊</h3>
-        <p>消耗: 饼干x1, 奶油x1, 可可粉x1</p>
-        <button class="btn" style="width:100%; padding:10px; background:#e67e22;" onclick="bakeTiramisu()">投入材料制作 1份提拉米苏</button>
+        <h3>🍳 烘烤工坊</h3>
+        <p style="font-size:12px; color:#666; text-align:center;">配方需要: 饼干x1, 奶油x1, 可可粉x1</p>
+        <button class="btn" id="start-qte-btn" onclick="startCookingGame()">开始制作甜品</button>
+        
+        <div id="qte-wrapper">
+            <p style="font-size:12px; font-weight:bold; color:#e67e22; margin:0 0 5px 0;">当红针移到【绿色区域】时按【空格键】！</p>
+            <div id="qte-bar">
+                <div id="qte-perfect"></div>
+                <div id="qte-pointer"></div>
+            </div>
+        </div>
     </div>
 
     <div id="modal-counter" class="modal-panel">
         <span class="close-btn" onclick="closeAllModals()">×</span>
-        <h3>📊 售卖前台与定价</h3>
-        <p>当前单价售价：<input type="number" id="price-input" value="12.00" step="0.5" style="width:60px;"> 元</p>
-        <button class="btn" style="width:100%; padding:10px; background:#2ecc71;" onclick="endDay()">🏁 结束今天营业并结算</button>
+        <h3>🛎️ 售卖前台</h3>
+        <p>当前店内正在排队的顾客：<strong style="color:red;" id="queue-count">0</strong> 人</p>
+        <p>甜品售价设置：<input type="number" id="price-input" value="15.00" step="1" style="width:60px; font-weight:bold; text-align:center;"> 元</p>
+        <button class="btn" style="background:#2ecc71;" onclick="serveCustomer()">📢 招待排在首位的顾客</button>
+        <button class="btn" style="background:#e74c3c; margin-top:15px;" onclick="saveAndEndDay()">🏁 打烊下班（自动保存存档）</button>
     </div>
 </div>
 
-<div id="log-panel" id="log-box">
-    [系统通知] 使用键盘【W A S D】控制甜品师移动。分别走到三个彩色工作区，按【E】键可以进行进货、制造和卖货结算！
+<div id="log-panel">
+    [系统通知] 游戏已就绪！【W A S D】移动。走到蓝色区进货，橙色区制作（有滑块小游戏），绿色区迎客卖货和打烊。每天打烊会自动保存进度到本地！
 </div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // 经营核心状态
+    // 核心经营与存档数据
     let gameState = {
-        day: 1, money: 500.00, reputation: 100,
+        day: 1, money: 500.00,
         inventory: { biscuit: 10, cream: 10, cocoa: 10 },
         products: 0
     };
 
-    // 玩家小人（动作引擎数据）
-    let player = { x: 400, y: 220, speed: 4, size: 20 };
+    // 玩家物理实体
+    let player = { x: 400, y: 250, speed: 4, size: 22 };
     let keys = {};
 
-    // 区域定义（碰撞箱）
-    const zones = {
-        supply: { x: 50, y: 50, w: 120, h: 100, color: '#3498db', name: '仓库 (进货)' },
-        kitchen: { x: 50, y: 280, w: 120, h: 100, color: '#e67e22', name: '厨房 (制造)' },
-        counter: { x: 620, y: 160, w: 120, h: 140, color: '#2ecc71', name: '前台 (售卖)' }
-    };
+    // 顾客阵列系统
+    let customers = [];
+    let customerSpawnTimer = 0;
 
+    // 地图静态色块工作区
+    const zones = {
+        supply: { x: 40, y: 40, w: 120, h: 90, color: '#3498db', name: '仓库[进货]' },
+        kitchen: { x: 40, y: 310, w: 120, h: 90, color: '#e67e22', name: '厨房[制造]' },
+        counter: { x: 640, y: 150, w: 110, h: 160, color: '#2ecc71', name: '前台[售卖]' }
+    };
     let activeZone = null;
 
-    // 键盘监听
-    window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if(e.key.toLowerCase() === 'e') triggerAction(); });
-    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+    // QTE小游戏物理状态机
+    let qte = { active: false, pointerX: 0, direction: 1, speed: 3.5, animFrame: null };
+
+    // --- 核心逻辑1：本地读取存档 ---
+    function loadGame() {
+        const savedData = localStorage.getItem('TiramisuTycoon_Save');
+        if (savedData) {
+            gameState = JSON.parse(savedData);
+            log(`💾 成功读取历史存档！欢迎回来，当前是第 ${gameState.day} 天。`);
+        } else {
+            log("🆕 未检测到历史本地存档，已为你开启全新连载模式！");
+        }
+        updateUI();
+    }
+
+    // --- 核心逻辑2：每日结算并存档 ---
+    function saveAndEndDay() {
+        if(customers.length > 0) {
+            if(!confirm("店里还有顾客在排队，确定要直接打烊吗？（未招待的顾客会离开）")) return;
+        }
+        
+        // 天数递增，清空当天的顾客
+        gameState.day++;
+        customers = [];
+        
+        // 写入浏览器本地数据库
+        localStorage.setItem('TiramisuTycoon_Save', JSON.stringify(gameState));
+        
+        log(`💾 第 ${gameState.day - 1} 天营业结束！进度已安全保存到本地。开启第 ${gameState.day} 天！`);
+        closeAllModals();
+        updateUI();
+    }
 
     function log(msg) {
         const panel = document.getElementById('log-panel');
-        panel.innerHTML += `<br>[第${gameState.day}天] ${msg}`;
+        panel.innerHTML += `<br>▶ ${msg}`;
         panel.scrollTop = panel.scrollHeight;
+    }
+
+    // 业务逻辑
+    function buyMaterial(type, price) {
+        if (gameState.money >= price) {
+            gameState.money -= price; gameState.inventory[type]++; updateUI();
+        } else { alert("现金链断裂，无法进货！"); }
+    }
+
+    // --- 核心逻辑3：制作甜品滑块小游戏 ---
+    function startCookingGame() {
+        if (gameState.inventory.biscuit < 1 || gameState.inventory.cream < 1 || gameState.inventory.cocoa < 1) {
+            alert("原材料不足，无法开工！"); return;
+        }
+        document.getElementById('start-qte-btn').style.display = 'none';
+        document.getElementById('qte-wrapper').style.display = 'block';
+        
+        // 随机重置完美绿色区间的位置
+        const perfectEl = document.getElementById('qte-perfect');
+        let randomLeft = Math.floor(Math.random() * 50) + 20; // 20% - 70% 之间随机
+        perfectEl.style.left = randomLeft + '%';
+
+        qte.active = true;
+        qte.pointerX = 0;
+        qte.direction = 1;
+        runQTEPhysics(randomLeft);
+    }
+
+    function runQTEPhysics(perfectLeftTarget) {
+        if (!qte.active) return;
+        
+        qte.pointerX += qte.speed * qte.direction;
+        if (qte.pointerX >= 100) { qte.pointerX = 100; qte.direction = -1; }
+        if (qte.pointerX <= 0) { qte.pointerX = 0; qte.direction = 1; }
+        
+        document.getElementById('qte-pointer').style.left = qte.pointerX + '%';
+        qte.animFrame = requestAnimationFrame(() => runQTEPhysics(perfectLeftTarget));
+    }
+
+    // 空格键QTE拍板判定
+    window.addEventListener('keydown', e => {
+        keys[e.key.toLowerCase()] = true; 
+        if (e.key.toLowerCase() === 'e') triggerAction();
+        
+        // 当按下空格且小游戏激活时进行判定
+        if (e.key === ' ' && qte.active) {
+            e.preventDefault(); // 阻止网页滚轮下跳
+            cancelAnimationFrame(qte.animFrame);
+            qte.active = false;
+
+            // 获取完美绿区的真实边界
+            const perfectEl = document.getElementById('qte-perfect');
+            let leftBound = parseFloat(perfectEl.style.left);
+            let rightBound = leftBound + 20; // 宽度是20%
+
+            // 扣除基础进货原材料
+            gameState.inventory.biscuit--;
+            gameState.inventory.cream--;
+            gameState.inventory.cocoa--;
+
+            if (qte.pointerX >= leftBound && qte.pointerX <= rightBound) {
+                gameState.products++;
+                log("🌟 Perfect！精准掌控火候，成功做出一份极品提拉米苏！");
+            } else {
+                log("💀 啪唧！手抖按错了，提拉米苏烤成了焦黑的煳碳，材料浪费了...🗑️");
+            }
+
+            // 重置小游戏弹窗显示状态
+            document.getElementById('start-qte-btn').style.display = 'block';
+            document.getElementById('qte-wrapper').style.display = 'none';
+            updateUI();
+        }
+    });
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    // --- 核心逻辑4：顾客实时产生与走位售卖 ---
+    function spawnCustomer() {
+        // 场景中最多同时存在4个排队的顾客
+        if (customers.length < 4) {
+            // 顾客生成：从大门（下方X:700, Y:450）进入，走向前台排队
+            let targetY = 180 + (customers.length * 35); // 算出排队队列的坐标
+            customers.push({
+                x: 700,
+                y: 450,
+                targetX: 680,
+                targetY: targetY,
+                color: `hsl(${Math.random() * 360}, 70%, 60%)` // 随机衣服颜色
+            });
+        }
+    }
+
+    function serveCustomer() {
+        if (customers.length === 0) { alert("当前没有顾客在排队。"); return; }
+        if (gameState.products <= 0) { alert("货架上没有成品！快去厨房做甜品。"); return; }
+
+        let price = parseFloat(document.getElementById('price-input').value);
+        if (isNaN(price) || price <= 0) return alert("请设置正确的售价！");
+
+        // 简易定价接受判定
+        if (price > 25) {
+            log("😡 顾客看了一眼价格，嫌太贵黑心，气得直接开骂离店了！");
+        } else {
+            gameState.products--;
+            gameState.money += price;
+            log(`💰 成功招待一位顾客！卖出提拉米苏一份，收入 +$${price.toFixed(2)}`);
+        }
+
+        // 排在第一位的顾客离店，后面的队伍向前补位走动
+        customers.shift();
+        for(let i=0; i<customers.length; i++) {
+            customers[i].targetY = 180 + (i * 35);
+        }
+        updateUI();
     }
 
     function closeAllModals() {
         document.querySelectorAll('.modal-panel').forEach(m => m.style.display = 'none');
+        // 防止关闭窗口时QTE挂在后台空转
+        cancelAnimationFrame(qte.animFrame);
+        qte.active = false;
+        document.getElementById('start-qte-btn').style.display = 'block';
+        document.getElementById('qte-wrapper').style.display = 'none';
     }
 
-    // 触发E键交互
     function triggerAction() {
         if (!activeZone) return;
+        if (qte.active) return; // 小游戏期间禁止开别的弹窗
         closeAllModals();
         document.getElementById(`modal-${activeZone}`).style.display = 'block';
-    }
-
-    // 经营业务：进货
-    function buyMaterial(type, price) {
-        if (gameState.money >= price) {
-            gameState.money -= price;
-            gameState.inventory[type]++;
-            updateUI();
-        } else { alert("钱不够了！"); }
-    }
-
-    // 经营业务：制造
-    function bakeTiramisu() {
-        if (gameState.inventory.biscuit >= 1 && gameState.inventory.cream >= 1 && gameState.inventory.cocoa >= 1) {
-            gameState.inventory.biscuit--;
-            gameState.inventory.cream--;
-            gameState.inventory.cocoa--;
-            gameState.products++;
-            log("在厨房手工做了一份提拉米苏 🍰");
-            updateUI();
-        } else { alert("原材料不够！"); }
-    }
-
-    // 经营业务：售卖结算
-    function endDay() {
-        let price = parseFloat(document.getElementById('price-input').value);
-        let demand = price > 15 ? 0.3 : (price > 11 ? 0.8 : 1.3);
-        let buyers = Math.floor((Math.random() * 6 + 2) * demand);
-        let sold = Math.min(buyers, gameState.products);
-        
-        let rev = sold * price;
-        gameState.money += rev;
-        gameState.products -= sold;
-        
-        log(`开门营业结束。今天卖出 ${sold} 份，营业额：+$${rev.toFixed(2)}`);
-        gameState.day++;
-        closeAllModals();
-        updateUI();
     }
 
     function updateUI() {
         document.getElementById('day-txt').innerText = gameState.day;
         document.getElementById('money-txt').innerText = gameState.money.toFixed(2);
         document.getElementById('product-txt').innerText = gameState.products;
-        document.getElementById('rep-txt').innerText = gameState.reputation;
+        document.getElementById('customer-txt').innerText = customers.length;
+        document.getElementById('queue-count').innerText = customers.length;
 
         document.getElementById('inv-biscuit').innerText = gameState.inventory.biscuit;
         document.getElementById('inv-cream').innerText = gameState.inventory.cream;
         document.getElementById('inv-cocoa').innerText = gameState.inventory.cocoa;
     }
 
-    // 每一帧的动作逻辑更新（60FPS）
-    function updatePhysics() {
-        // WASD 移动
-        if (keys['w'] || keys['arrowup']) player.y -= player.speed;
-        if (keys['s'] || keys['arrowdown']) player.y += player.speed;
-        if (keys['a'] || keys['arrowleft']) player.x -= player.speed;
-        if (keys['d'] || keys['arrowright']) player.x += player.speed;
+    // 引擎每帧计算
+    function updateEngine() {
+        // 1. WASD 移动控制
+        if (keys['w']) player.y -= player.speed;
+        if (keys['s']) player.y += player.speed;
+        if (keys['a']) player.x -= player.speed;
+        if (keys['d']) player.x += player.speed;
 
-        // 边界限制
         player.x = Math.max(0, Math.min(canvas.width - player.size, player.x));
         player.y = Math.max(0, Math.min(canvas.height - player.size, player.y));
 
-        // 碰撞检查：判断玩家在哪一个工作区
+        // 2. 区域碰撞检查
         activeZone = null;
         for (let key in zones) {
             let z = zones[key];
-            if (player.x < z.x + z.w && player.x + player.size > z.x &&
-                player.y < z.y + z.h && player.y + player.size > z.y) {
+            if (player.x < z.x + z.w && player.x + player.size > z.x && player.y < z.y + z.h && player.y + player.size > z.y) {
                 activeZone = key;
             }
         }
 
-        // 显示或隐藏按E提示
         const prompt = document.getElementById('action-prompt');
         if (activeZone) {
             prompt.style.display = 'block';
-            prompt.innerText = `已进入【${zones[activeZone].name}】，按 E 键管理`;
-        } else {
-            prompt.style.display = 'none';
+            prompt.innerText = `📍 进入【${zones[activeZone].name}】，按 E 键打开面板`;
+        } else { prompt.style.display = 'none'; }
+
+        // 3. 动态刷新顾客计时器
+        customerSpawnTimer++;
+        if (customerSpawnTimer > 350) { // 每隔大约6-7秒随机来一个客人
+            customerSpawnTimer = 0;
+            if(Math.random() > 0.3) spawnCustomer();
         }
+
+        // 4. 驱动顾客AI平滑走位到队伍里
+        customers.forEach(c => {
+            if (c.x > c.targetX) c.x -= 2;
+            if (c.y > c.targetY) c.y -= 2;
+            if (c.y < c.targetY) c.y += 2;
+        });
     }
 
-    // 渲染游戏画面
-    function render() {
+    // 渲染画面
+    function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 1. 画地板网格
-        ctx.strokeStyle = '#e9decb';
+        // 画木纹复合地板网格
+        ctx.strokeStyle = '#ebdcc7';
         ctx.lineWidth = 1;
         for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
         for(let j=0; j<canvas.height; j+=40) { ctx.beginPath(); ctx.moveTo(0,j); ctx.lineTo(canvas.width,j); ctx.stroke(); }
 
-        // 2. 画三个工作区域（设备台）
+        // 绘制三大区域设备台
         for (let key in zones) {
             let z = zones[key];
             ctx.fillStyle = z.color;
             ctx.fillRect(z.x, z.y, z.w, z.h);
-            
-            // 区域阴影和边框
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#5d4037';
+            ctx.lineWidth = 4;
             ctx.strokeRect(z.x, z.y, z.w, z.h);
 
-            // 文字标识
-            ctx.fillStyle = '#333';
-            ctx.font = 'bold 14px sans-serif';
-            ctx.fillText(z.name, z.x + 10, z.y + z.h / 2 + 5);
+            ctx.fillStyle = '#1a252f';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(z.name, z.x + 10, z.y + z.h / 2 + 4);
         }
 
-        // 3. 画玩家控制的甜品师
-        ctx.fillStyle = '#e74c3c'; // 红衣服
+        // 绘制排队的顾客实体
+        customers.forEach((c, index) => {
+            ctx.fillStyle = c.color;
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // 头顶显示排队数字
+            ctx.fillStyle = '#000';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(`No.${index+1}`, c.x - 12, c.y - 15);
+        });
+
+        // 绘制玩家甜品师
+        ctx.fillStyle = '#e74c3c';
         ctx.fillRect(player.x, player.y, player.size, player.size);
-        
-        // 画厨师帽视觉细节
+        // 白色厨师帽
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(player.x + 2, player.y - 6, player.size - 4, 6);
+        ctx.fillRect(player.x + 2, player.y - 7, player.size - 4, 7);
+        ctx.strokeRect(player.x + 2, player.y - 7, player.size - 4, 7);
     }
 
-    // 游戏主循环
-    function gameLoop() {
-        updatePhysics();
-        render();
-        requestAnimationFrame(gameLoop);
+    function mainLoop() {
+        updateEngine();
+        draw();
+        requestAnimationFrame(mainLoop);
     }
 
-    // 启动游戏
-    updateUI();
-    gameLoop();
+    // 运行初始装载
+    loadGame();
+    mainLoop();
 </script>
 
 </body>
