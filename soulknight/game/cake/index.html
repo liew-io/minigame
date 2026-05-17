@@ -3,45 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>提拉米苏大亨：黄金营业时间版</title>
+    <title>提拉米苏大亨：硬核主厨烘烤版</title>
     <style>
         :root {
             --primary: #8d6e63;
             --dark: #1a252f;
             --success: #2ecc71;
             --warning: #f1c40f;
+            --danger: #e74c3c;
         }
         body { font-family: 'Courier New', Courier, monospace; background: #2c3e50; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; user-select: none; color: #333; }
         
-        /* 顶部 HUD */
         #hud { width: 850px; background: var(--dark); color: white; padding: 12px 20px; display: flex; justify-content: space-between; border-radius: 8px 8px 0 0; box-sizing: border-box; font-weight: bold; font-size: 14px; border-bottom: 3px solid var(--primary); }
         .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
         .status-prep { background: #3498db; }
         .status-open { background: var(--success); }
-        .status-night { background: #e74c3c; }
+        .status-night { background: var(--danger); }
 
         #stage-container { position: relative; width: 850px; height: 460px; background: #f1e7dc; box-sizing: border-box; }
         canvas { display: block; background: #f5f0ea; box-shadow: inset 0 0 40px rgba(0,0,0,0.08); }
 
-        /* 弹窗基类 */
-        .modal-panel { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 460px; background: white; border: 4px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); z-index: 10; }
+        .modal-panel { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 540px; background: white; border: 4px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); z-index: 10; }
         .modal-panel h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 8px; text-align: center; }
         .close-btn { float: right; cursor: pointer; font-weight: bold; color: #999; font-size: 20px; }
-        .close-btn:hover { color: #e74c3c; }
+        .close-btn:hover { color: var(--danger); }
 
         .btn { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn:hover { background: #70554c; }
         .btn-main { width: 100%; padding: 12px; margin-top: 8px; font-size: 14px; }
 
-        /* 厨房 */
-        .kitchen-box { display: flex; gap: 15px; margin-top: 10px; }
-        .book-side { flex: 1.2; background: #fffcf3; border: 1px dashed #d0bfa7; padding: 8px; border-radius: 4px; font-size: 12px; line-height: 1.5; }
-        .craft-side { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fdfdfd; border-radius: 4px; padding: 8px; border: 1px solid #eee; }
-        .ingredient-tray { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; margin-top: 10px; }
-        .ing-btn { padding: 8px; border: none; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; color: white; }
+        /* 厨房大师流 */
+        .kitchen-box { display: flex; gap: 12px; margin-top: 10px; }
+        .book-side { flex: 1; background: #fffcf3; border: 1px dashed #d0bfa7; padding: 8px; border-radius: 4px; font-size: 11px; line-height: 1.4; }
+        .craft-side { flex: 1; display: flex; flex-direction: column; align-items: center; background: #fdfdfd; border-radius: 4px; padding: 8px; border: 1px solid #eee; }
         
-        .bowl { width: 120px; height: 90px; border: 4px solid #7f8c8d; border-top: none; border-radius: 0 0 15px 15px; background: rgba(0,0,0,0.02); display: flex; flex-direction: column-reverse; padding: 4px; box-sizing: border-box; margin-bottom: 10px; }
-        .layer { width: 100%; height: 16px; margin-top: 2px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold; }
+        /* 烤箱设备区布局 */
+        .oven-side { flex: 1.2; background: #eaeaea; border: 2px solid #bdc3c7; border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+        .oven-slot { background: #34495e; color: white; padding: 8px; border-radius: 4px; font-size: 11px; text-align: center; border: 2px solid #2c3e50; }
+        .oven-baking { background: #d35400; border-color: #e67e22; animation: pulse 1.5s infinite; }
+        .oven-done { background: #27ae60; border-color: #2ecc71; }
+
+        .ingredient-tray { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; margin-top: 8px; }
+        .ing-btn { padding: 6px; border: none; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; color: white; }
+        
+        .bowl { width: 100px; height: 75px; border: 4px solid #7f8c8d; border-top: none; border-radius: 0 0 12px 12px; background: rgba(0,0,0,0.02); display: flex; flex-direction: column-reverse; padding: 3px; box-sizing: border-box; margin-bottom: 5px; }
+        .layer { width: 100%; height: 13px; margin-top: 1px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold; }
         
         .mat-biscuit { background: #e0c097; }
         .mat-cream { background: #fff9c4; color: #5d4037; }
@@ -50,15 +56,17 @@
         .mat-strawberry { background: #ff7675; }
 
         .shelf-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
-        #log-panel { width: 850px; height: 100px; background: var(--dark); color: #2ecc71; font-size: 12px; padding: 10px; overflow-y: auto; box-sizing: border-box; border-radius: 0 0 8px 8px; line-height: 1.6; }
+        #log-panel { width: 850px; height: 100px; background: var(--dark); color: #2ecc71; font-size: 12px; padding: 10px; overflow-y: auto; box-sizing: border-box; border-radius: 0 0 8px 8px; }
         #action-prompt { position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 13px; pointer-events: none; display: none; border: 1px solid var(--primary); }
+
+        @keyframes pulse { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
     </style>
 </head>
 <body>
 
 <div id="hud">
     <span>📅 第 <span id="day-txt">1</span> 天 (<span id="status-tag" class="status-badge status-prep">备货期</span>)</span>
-    <span>⏰ 时间: <span id="time-txt" style="color:var(--warning);">10:00 AM</span></span>
+    <span>⏰ 当前时间: <span id="time-txt" style="color:var(--warning); font-size:16px;">10:00 AM</span></span>
     <span>💰 资金: $<span id="money-txt">500.00</span></span>
     <span>👥 排队顾客: <span id="customer-txt">0</span> 位</span>
 </div>
@@ -69,105 +77,120 @@
 
     <div id="modal-supply" class="modal-panel">
         <span class="close-btn" onclick="closeAllModals()">×</span>
-        <h3>📦 进货供应链管理</h3>
-        <table style="width:100%; border-collapse: collapse;">
-            <tr style="border-bottom: 1px solid #eee;"><td>🍪 饼干</td><td>库存: <span id="inv-biscuit">0</span></td><td><button class="btn" onclick="buyMaterial('biscuit', 1.5)">$1.5</button></td></tr>
-            <tr style="border-bottom: 1px solid #eee;"><td>🍦 奶油</td><td>库存: <span id="inv-cream">0</span></td><td><button class="btn" onclick="buyMaterial('cream', 2.5)">$2.5</button></td></tr>
-            <tr style="border-bottom: 1px solid #eee;"><td>🍫 可可粉</td><td>库存: <span id="inv-cocoa">0</span></td><td><button class="btn" onclick="buyMaterial('cocoa', 1.0)">$1.0</button></td></tr>
-            <tr id="row-mat-matcha" style="border-bottom: 1px solid #eee; opacity: 0.3;">
+        <h3>📦 供应链与后厨科技升级</h3>
+        <table style="width:100%; border-collapse: collapse; font-size:13px;">
+            <tr style="border-bottom: 1px solid #eee; height:35px;"><td>🍪 饼干</td><td>库存: <span id="inv-biscuit">0</span></td><td><button class="btn" onclick="buyMaterial('biscuit', 1.5)">$1.5</button></td></tr>
+            <tr style="border-bottom: 1px solid #eee; height:35px;"><td>🍦 奶油</td><td>库存: <span id="inv-cream">0</span></td><td><button class="btn" onclick="buyMaterial('cream', 2.5)">$2.5</button></td></tr>
+            <tr style="border-bottom: 1px solid #eee; height:35px;"><td>🍫 可可粉</td><td>库存: <span id="inv-cocoa">0</span></td><td><button class="btn" onclick="buyMaterial('cocoa', 1.0)">$1.0</button></td></tr>
+            <tr id="row-mat-matcha" style="border-bottom: 1px solid #eee; opacity: 0.3; height:35px;">
                 <td>🍃 宇治抹茶粉</td><td>库存: <span id="inv-matcha">0</span></td><td id="cell-matcha-btn">Day 3解锁</td>
             </tr>
-            <tr id="row-mat-strawberry" style="opacity: 0.3;">
+            <tr id="row-mat-strawberry" style="border-bottom: 1px solid #eee; opacity: 0.3; height:35px;">
                 <td>🍓 奢华红草莓</td><td>库存: <span id="inv-strawberry">0</span></td><td id="cell-strawberry-btn">Day 5解锁</td>
+            </tr>
+            <tr style="background: #fcf8e3; height:45px;">
+                <td>⏱️ <strong>数码烤箱定时器</strong></td>
+                <td colspan="2" id="timer-upgrade-cell">
+                    <button class="btn" style="background:#d35400;" onclick="buyTimerUpgrade()">花费 $150 购买安装</button>
+                    <br><small style="color:#7f8c8d;">解锁烤箱内精确倒计时分钟数显示</small>
+                </td>
             </tr>
         </table>
     </div>
 
-    <div id="modal-kitchen" class="modal-panel" style="width: 520px;">
+    <div id="modal-kitchen" class="modal-panel" style="width: 580px;">
         <span class="close-btn" onclick="closeAllModals()">×</span>
-        <h3>📖 甜品大师工坊与食谱秘密指南</h3>
+        <h3>🍳 独立温控烘烤车间</h3>
         
         <div class="kitchen-box">
             <div class="book-side">
-                <h4 style="margin:0 0 5px 0; color:#b33939; text-align:center;">📜 绝密配方顺序</h4>
-                <div style="border-bottom: 1px solid #ddd; padding-bottom: 4px;">
-                    <strong>1. 经典款 (Day 1)</strong><br>
-                    <span style="color:#d35400;">🍪饼干 ➔ 🍦奶油 ➔ 🍫可可粉</span>
+                <h4 style="margin:0 0 5px 0; color:#b33939; text-align:center;">📜 烘烤说明书</h4>
+                <div style="border-bottom: 1px solid #ddd; padding-bottom: 3px;">
+                    <strong>1. 经典款 (需烘烤20分钟)</strong><br>
+                    <span style="color:#d35400;">🍪饼干 ➔ 🍦奶油 ➔ 🍫可可</span>
                 </div>
-                <div id="book-matcha" style="border-bottom: 1px solid #ddd; padding: 4px 0; opacity: 0.3;">
-                    <strong>2. 抹茶款 (Day 3解锁)</strong><br>
+                <div id="book-matcha" style="border-bottom: 1px solid #ddd; padding: 3px 0; opacity: 0.3;">
+                    <strong>2. 抹茶款 (需烘烤35分钟)</strong><br>
                     <span style="color:#27ae60;">🍪饼干 ➔ 🍃抹茶 ➔ 🍦奶油 ➔ 🍃抹茶</span>
                 </div>
-                <div id="book-strawberry" style="padding-top: 4px; opacity: 0.3;">
-                    <strong>3. 草莓款 (Day 5解锁)</strong><br>
+                <div id="book-strawberry" style="padding-top: 3px; opacity: 0.3;">
+                    <strong>3. 草莓款 (需烘烤50分钟)</strong><br>
                     <span style="color:#c0392b;">🍓草莓 ➔ 🍪饼干 ➔ 🍦奶油 ➔ 🍓草莓</span>
                 </div>
             </div>
 
             <div class="craft-side">
                 <div class="bowl" id="bowl-preview"></div>
-                <button class="btn" style="background:#e67e22; font-size:11px; width:100%;" onclick="clearBowl()">🧹 清空容器</button>
-                <button class="btn" style="background:#2ecc71; font-size:12px; width:100%; margin-top:5px;" onclick="checkAndBakeTiramisu()">🔥 开始烘烤鉴定</button>
+                <button class="btn" style="background:#e67e22; font-size:10px; width:100%; padding:4px;" onclick="clearBowl()">🧹 清空</button>
+                <div style="font-size:10px; margin-top:5px; color:#555; text-align:center;">选择空闲烤箱送入 ➔</div>
+            </div>
+
+            <div class="oven-side">
+                <h4 style="margin:0; text-align:center; font-size:12px; color:#333;">🔥 后厨专业烤箱</h4>
+                <div id="oven-0" class="oven-slot">
+                    <span>炉位 A：[闲置中]</span><br>
+                    <button class="btn" style="font-size:10px; margin-top:4px; padding:2px 6px;" onclick="bakeInOven(0)">送入此炉</button>
+                </div>
+                <div id="oven-1" class="oven-slot">
+                    <span>炉位 B：[闲置中]</span><br>
+                    <button class="btn" style="font-size:10px; margin-top:4px; padding:2px 6px;" onclick="bakeInOven(1)">送入此炉</button>
+                </div>
             </div>
         </div>
 
         <div class="ingredient-tray">
-            <button class="ing-btn mat-biscuit" onclick="dropIngredient('biscuit')">🍪 投饼干</button>
-            <button class="ing-btn mat-cream" onclick="dropIngredient('cream')">🍦 投奶油</button>
-            <button class="ing-btn mat-cocoa" onclick="dropIngredient('cocoa')">🍫 投可可粉</button>
-            <button class="ing-btn mat-matcha" id="ing-btn-matcha" disabled onclick="dropIngredient('matcha')">🍃 投抹茶粉</button>
-            <button class="ing-btn mat-strawberry" id="ing-btn-strawberry" disabled onclick="dropIngredient('strawberry')">🍓 投红草莓</button>
+            <button class="ing-btn mat-biscuit" onclick="dropIngredient('biscuit')">🍪 饼干</button>
+            <button class="ing-btn mat-cream" onclick="dropIngredient('cream')">🍦 奶油</button>
+            <button class="ing-btn mat-cocoa" onclick="dropIngredient('cocoa')">🍫 可可粉</button>
+            <button class="ing-btn mat-matcha" id="ing-btn-matcha" disabled onclick="dropIngredient('matcha')">🍃 抹茶粉</button>
+            <button class="ing-btn mat-strawberry" id="ing-btn-strawberry" disabled onclick="dropIngredient('strawberry')">🍓 红草莓</button>
         </div>
     </div>
 
     <div id="modal-counter" class="modal-panel">
         <span class="close-btn" onclick="closeAllModals()">×</span>
         <h3>🛎️ 销售服务前台</h3>
-        
         <div id="shop-actions-area" style="margin-bottom: 15px;">
-            <button class="btn btn-main" id="start-shop-btn" style="background:#3498db;" onclick="startShopOpen()">📢 我已完成备货，现在开业！</button>
+            <button class="btn btn-main" id="start-shop-btn" style="background:#3498db;" onclick="startShopOpen()">📢 我已完成备货，现在天亮开业！</button>
             <button class="btn btn-main" id="end-day-btn" style="background:#e74c3c; display:none;" onclick="saveAndEndDay()">🏁 店铺已打烊，清算今天并休息</button>
         </div>
-
         <div style="background:#f9f9f9; padding:8px; border-radius:5px; margin-bottom:10px; font-size:13px;">
             排队食客：<strong style="color:red;" id="queue-count">0</strong> 人 | 顾客想要：<strong style="color:var(--primary);" id="customer-demand-txt">暂无</strong>
         </div>
-
         <div id="shelf-manager">
-            <div class="shelf-row"><span>🟫 经典款 (库存: <span id="shelf-classic">0</span>)</span><span>定价 $<input type="number" id="price-classic" value="15" style="width:45px;"></span><button class="btn" onclick="sellProduct('classic')">售卖</button></div>
-            <div class="shelf-row" id="shelf-row-matcha" style="opacity:0.3;"><span>🟩 抹茶款 (库存: <span id="shelf-matcha">0</span>)</span><span>定价 $<input type="number" id="price-matcha" value="28" style="width:45px;"></span><button class="btn" id="btn-sell-matcha" disabled onclick="sellProduct('matcha')">售卖</button></div>
-            <div class="shelf-row" id="shelf-row-strawberry" style="opacity:0.3;"><span>🟥 草莓款 (库存: <span id="shelf-strawberry">0</span>)</span><span>定价 $<input type="number" id="price-strawberry" value="45" style="width:45px;"></span><button class="btn" id="btn-sell-strawberry" disabled onclick="sellProduct('strawberry')">售卖</button></div>
+            <div class="shelf-row"><span>🟫 经典款 (货架库存: <span id="shelf-classic">0</span>)</span><span>定价 $<input type="number" id="price-classic" value="15" style="width:45px;"></span><button class="btn" onclick="sellProduct('classic')">售卖</button></div>
+            <div class="shelf-row" id="shelf-row-matcha" style="opacity:0.3;"><span>🟩 抹茶款 (货架库存: <span id="shelf-matcha">0</span>)</span><span>定价 $<input type="number" id="price-matcha" value="28" style="width:45px;"></span><button class="btn" id="btn-sell-matcha" disabled onclick="sellProduct('matcha')">售卖</button></div>
+            <div class="shelf-row" id="shelf-row-strawberry" style="opacity:0.3;"><span>🟥 草莓款 (货架库存: <span id="shelf-strawberry">0</span>)</span><span>定价 $<input type="number" id="price-strawberry" value="45" style="width:45px;"></span><button class="btn" id="btn-sell-strawberry" disabled onclick="sellProduct('strawberry')">售卖</button></div>
         </div>
     </div>
 </div>
 
 <div id="log-panel">
-    [系统通知] 又是全新的一天！现在是【备货阶段】，时间静止在早上10:00。尽情去左侧进货和制作甜品。全部准备就绪后，前往右侧绿色台子“宣布开业”吧！
+    [系统通知] 欢迎开店！新版本后厨加入了物理时间烤箱。未购买【定时器】之前，送入烤箱后界面不会显示时间进度，你必须自己心算右上角的分钟变化，时间一到立刻过来取出来，太早或太迟都会失败！
 </div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // 核心经营与时间状态机
+    // 核心存档数据结构
     let gameState = {
         day: 1, money: 500.00,
         inventory: { biscuit: 10, cream: 10, cocoa: 10, matcha: 0, strawberry: 0 },
-        products: { classic: 0, matcha: 0, strawberry: 0 }
+        products: { classic: 0, matcha: 0, strawberry: 0 },
+        hasTimer: false // 是否已买高级定时器
     };
 
-    // 时间与营业状态管理
-    let timeState = {
-        stage: "PREP", // PREP(备货期), OPEN(营业中), NIGHT(已十点打烊，等待手动切天)
-        hour: 10,
-        minute: 0,
-        ticks: 0 // 控制分钟流速
-    };
+    let timeState = { stage: "PREP", hour: 10, minute: 0, ticks: 0 };
+
+    // 烤箱硬件插槽状态（支持两路并发烘烤）
+    let ovens = [
+        { status: "EMPTY", productKey: null, startHour: 0, startMin: 0, totalMinutesNeeded: 0 },
+        { status: "EMPTY", productKey: null, startHour: 0, startMin: 0, totalMinutesNeeded: 0 }
+    ];
 
     let player = { x: 420, y: 250, speed: 4.5, size: 22 };
-    let keys = {};
-    let customers = [];
-    let spawnTimer = 0;
+    let keys = {}; let customers = []; let spawnTimer = 0; let bowlStack = [];
 
     const zones = {
         supply: { x: 40, y: 40, w: 120, h: 90, color: '#3498db', name: '供应链[仓库]' },
@@ -175,139 +198,187 @@
         counter: { x: 690, y: 150, w: 110, h: 160, color: '#2ecc71', name: '前台[状态]' }
     };
     let activeZone = null;
-    let bowlStack = []; 
 
     const MAT_NAMES = { biscuit: "🍪饼干", cream: "🍦奶油", cocoa: "🍫可可", matcha: "🍃抹茶", strawberry: "🍓草莓" };
+    
+    // 配置各品类的标准制作顺序及各自所需的硬核烘烤时间（单位：分钟）
     const RECIPES = {
-        classic: { name: "经典提拉米苏", dayRequired: 1, sequence: ['biscuit', 'cream', 'cocoa'], maxPrice: 22 },
-        matcha: { name: "宇治抹茶提拉米苏", dayRequired: 3, sequence: ['biscuit', 'matcha', 'cream', 'matcha'], maxPrice: 40 },
-        strawberry: { name: "红颜草莓提拉米苏", dayRequired: 5, sequence: ['strawberry', 'biscuit', 'cream', 'strawberry'], maxPrice: 65 }
+        classic: { name: "经典提拉米苏", dayRequired: 1, sequence: ['biscuit', 'cream', 'cocoa'], bakeTime: 20, maxPrice: 22 },
+        matcha: { name: "宇治抹茶提拉米苏", dayRequired: 3, sequence: ['biscuit', 'matcha', 'cream', 'matcha'], bakeTime: 35, maxPrice: 40 },
+        strawberry: { name: "红颜草莓提拉米苏", dayRequired: 5, sequence: ['strawberry', 'biscuit', 'cream', 'strawberry'], bakeTime: 50, maxPrice: 65 }
     };
 
     function loadGame() {
-        const save = localStorage.getItem('TiramisuTycoon_V4');
-        if (save) { gameState = JSON.parse(save); log(`💾 读取云本地进度！当前是第 ${gameState.day} 天。`); } 
-        else { log("🆕 建立店面，今天是完美的开局。"); }
-        resetDayTime();
-        updateUI();
+        const save = localStorage.getItem('TiramisuTycoon_V5');
+        if (save) { gameState = JSON.parse(save); log(`💾 装载进度成功！当前天数：第 ${gameState.day} 天。`); }
+        resetDayTime(); updateUI();
     }
 
-    // 重置一天的时间到早上 10:00 AM
     function resetDayTime() {
-        timeState.stage = "PREP";
-        timeState.hour = 10;
-        timeState.minute = 0;
-        timeState.ticks = 0;
-        customers = [];
+        timeState.stage = "PREP"; timeState.hour = 10; timeState.minute = 0; timeState.ticks = 0;
+        customers = []; ovens = [
+            { status: "EMPTY", productKey: null, startHour: 0, startMin: 0, totalMinutesNeeded: 0 },
+            { status: "EMPTY", productKey: null, startHour: 0, startMin: 0, totalMinutesNeeded: 0 }
+        ];
     }
 
-    // --- 核心逻辑 1：手动点击开业 ---
     function startShopOpen() {
         if(timeState.stage !== "PREP") return;
         timeState.stage = "OPEN";
-        log("🌞 啪嗒！招牌翻转！店铺正式开业！时间开始流动，顾客正在路上！");
-        closeAllModals();
-        updateUI();
+        log("🌞 开门营业！时间开始流逝，注意看好你烤箱里的甜品状态！");
+        closeAllModals(); updateUI();
     }
 
-    // --- 核心逻辑 2：结算并跨入下一天 ---
     function saveAndEndDay() {
-        if(timeState.stage !== "NIGHT") { alert("营业还没结束，不能去睡觉哦！"); return; }
-        if(customers.length > 0) {
-            if(!confirm("排队队列里还有最后的客人，现在关店他们会直接离开，确定下班？")) return;
-        }
-
+        if(timeState.stage !== "NIGHT") return alert("还没到深夜打烊时间！");
         gameState.day++;
-        localStorage.setItem('TiramisuTycoon_V4', JSON.stringify(gameState));
-        log(`💾 第 ${gameState.day - 1} 天账目清算完毕，数据已妥善存档。`);
-        log(`💤 呼……呼…… 睡醒了！新的一天（第 ${gameState.day} 天）开始了，已进入【备货期】！`);
-        
-        resetDayTime();
-        closeAllModals();
-        updateUI();
+        localStorage.setItem('TiramisuTycoon_V5', JSON.stringify(gameState));
+        log(`💤 清算完毕，第 ${gameState.day} 天已开启，进入清晨备货期。`);
+        resetDayTime(); closeAllModals(); updateUI();
     }
 
-    // --- 核心逻辑 3：时间驱动物理时钟系统 ---
+    // --- 核心时间流动器：每分钟驱动烤箱状态同步 ---
     function updateClockPhysics() {
-        if (timeState.stage !== "OPEN") return; // 只有在营业状态下，时间才会走
-
+        if (timeState.stage !== "OPEN") return;
         timeState.ticks++;
-        if (timeState.ticks >= 8) { // 调整这个数值可以控制一分钟走得多快
+        if (timeState.ticks >= 12) { // 真实每隔一小段时间跨越一分钟
             timeState.ticks = 0;
             timeState.minute++;
+            if (timeState.minute >= 60) { timeState.minute = 0; timeState.hour++; }
+            if (timeState.hour >= 22) { timeState.stage = "NIGHT"; log("🌙 10:00 PM 已打烊！"); }
             
-            if (timeState.minute >= 60) {
-                timeState.minute = 0;
-                timeState.hour++;
-                
-                // 晚上 10点 (22点) 打烊
-                if (timeState.hour >= 22) {
-                    timeState.stage = "NIGHT";
-                    log("🌙 注意：夜间 10:00 PM 已到！大门已上锁，不再迎来新顾客，请招待完残余客人后前往前台手工打烊。");
-                    updateUI();
-                }
-            }
             updateClockUI();
+            if (activeZone === 'kitchen') renderOvensUI(); // 如果开着后厨面板，实时重绘烤箱数据
         }
     }
 
     function updateClockUI() {
-        let hr = timeState.hour;
-        let period = "AM";
-        if(hr >= 12) {
-            period = "PM";
-            if(hr > 12) hr -= 12;
-        }
+        let hr = timeState.hour; let period = hr >= 12 ? "PM" : "AM";
+        if(hr > 12) hr -= 12;
         let minStr = timeState.minute < 10 ? "0" + timeState.minute : timeState.minute;
         document.getElementById('time-txt').innerText = `${hr}:${minStr} ${period}`;
     }
 
-    function log(msg) {
-        const p = document.getElementById('log-panel'); p.innerHTML += `<br>▶ ${msg}`; p.scrollTop = p.scrollHeight;
-    }
-
-    function buyMaterial(type, price) {
-        if (gameState.money >= price) { gameState.money -= price; gameState.inventory[type]++; updateUI(); } 
-        else { alert("资金紧张！"); }
+    function buyTimerUpgrade() {
+        if (gameState.money >= 150) {
+            gameState.money -= 150; gameState.hasTimer = true; log("⏱️ 科技改变世界！成功给后厨升级安装了数码定时器，现在能看清具体剩余时间了！"); updateUI();
+        } else { alert("资金短缺！"); }
     }
 
     function dropIngredient(matKey) {
-        if (gameState.inventory[matKey] < 1) { alert(`原材料【${MAT_NAMES[matKey]}】库存耗尽！`); return; }
-        if (bowlStack.length >= 6) { alert("盆子放满了！"); return; }
-        gameState.inventory[matKey]--;
-        bowlStack.push(matKey);
+        if (gameState.inventory[matKey] < 1) return alert("物料见底！");
+        if (bowlStack.length >= 6) return alert("堆叠满了！");
+        gameState.inventory[matKey]--; bowlStack.push(matKey);
         renderBowlUI(); updateUI();
     }
 
     function clearBowl() {
-        bowlStack.forEach(mat => gameState.inventory[mat]++);
-        bowlStack = []; renderBowlUI(); updateUI();
+        bowlStack.forEach(mat => gameState.inventory[mat]++); bowlStack = [];
+        renderBowlUI(); updateUI();
     }
 
     function renderBowlUI() {
         const bowl = document.getElementById('bowl-preview'); bowl.innerHTML = "";
         bowlStack.forEach(mat => {
-            const div = document.createElement('div');
-            div.className = `layer mat-${mat}`; div.innerText = MAT_NAMES[mat]; bowl.appendChild(div);
+            const div = document.createElement('div'); div.className = `layer mat-${mat}`; div.innerText = MAT_NAMES[mat]; bowl.appendChild(div);
         });
     }
 
-    function checkAndBakeTiramisu() {
-        if (bowlStack.length === 0) return alert("空盆子无法烘烤！");
-        let matchedKey = null;
+    // --- 核心逻辑：送入指定物理烤箱 ---
+    function bakeInOven(slotIdx) {
+        if (bowlStack.length === 0) return alert("碗里没有食材，无法送去烘烤！");
+        if (ovens[slotIdx].status !== "EMPTY") return alert("这台烤箱正忙着呢！");
+
+        // 鉴定配方是否合规
+        let targetRecipeKey = null;
         for (let key in RECIPES) {
             let r = RECIPES[key];
-            if (gameState.day >= r.dayRequired) {
-                if (JSON.stringify(bowlStack) === JSON.stringify(r.sequence)) { matchedKey = key; break; }
+            if (gameState.day >= r.dayRequired && JSON.stringify(bowlStack) === JSON.stringify(r.sequence)) {
+                targetRecipeKey = key; break;
             }
         }
-        if (matchedKey) {
-            gameState.products[matchedKey]++;
-            log(`🌟 成功按图索骥做成了一份【${RECIPES[matchedKey].name}】！`);
-        } else {
-            log(`🗑️ 顺序不对或配方杂乱，出炉了一盘黑乎乎的垃圾，报废。`);
+
+        // 不管配方对不对，都允许送进去烤（如果配方本来就不对，烤出来也是失败品）
+        ovens[slotIdx] = {
+            status: "BAKING",
+            productKey: targetRecipeKey, // 如果是null，代表玩家放了一盆乱七八糟的杂物进去
+            startHour: timeState.hour,
+            startMin: timeState.minute,
+            totalMinutesNeeded: targetRecipeKey ? RECIPES[targetRecipeKey].bakeTime : 15 // 错误配方默认15分钟也会烤焦
+        };
+
+        log(`🔥 成功将食材盘送入烤箱 [炉位 ${slotIdx === 0 ? 'A':'B'}] 开始烘烤！烘烤阶段已触发。`);
+        bowlStack = []; // 清空双手和搅拌碗
+        renderBowlUI();
+        renderOvensUI();
+        updateUI();
+    }
+
+    // --- 核心逻辑：计算烘烤时间误差并出炉 ---
+    function collectOven(slotIdx) {
+        let oven = ovens[slotIdx];
+        if (oven.status !== "BAKING") return;
+
+        // 计算从入炉到目前为止，究竟在里面烤了多少分钟
+        let currentTotalMins = (timeState.hour * 60) + timeState.minute;
+        let startTotalMins = (oven.startHour * 60) + oven.startMin;
+        let bakedDuration = currentTotalMins - startTotalMins; // 实际烘烤分钟数
+
+        let needed = oven.totalMinutesNeeded;
+        let name = oven.productKey ? RECIPES[oven.productKey].name : "未知配比黑暗料理";
+
+        if (!oven.productKey) {
+            log(`🗑️ [炉位 ${slotIdx === 0 ? 'A':'B'}] 出炉：因为你入炉时的食材层级顺序就不对，烤出来的只是一团焦黑的废料。`);
+        } 
+        // 判定准时：实际烘烤时间必须满足要求，且误差不能超过 5 分钟
+        else if (bakedDuration >= needed && bakedDuration <= (needed + 5)) {
+            gameState.products[oven.productKey]++;
+            log(`🌟 [炉位 ${slotIdx === 0 ? 'A':'B'}] 叮！准时开炉！你完美掌控了火候，成功做成了一份【${name}】！`);
+        } 
+        // 判定未熟
+        else if (bakedDuration < needed) {
+            log(`🤮 [炉位 ${slotIdx === 0 ? 'A':'B'}] 出炉失败！你取出的太早了，里面的面糊和奶油完全还是生半熟状态，直接报废！`);
+        } 
+        // 判定烤焦
+        else {
+            log(`💀 [炉位 ${slotIdx === 0 ? 'A':'B'}] 出炉失败！你把它遗忘在烤箱里太久了（烤了 ${bakedDuration} 分钟），已经炭化冒烟了！`);
         }
-        bowlStack = []; renderBowlUI(); updateUI();
+
+        // 重置清空烤箱槽位
+        ovens[slotIdx] = { status: "EMPTY", productKey: null, startHour: 0, startMin: 0, totalMinutesNeeded: 0 };
+        renderOvensUI();
+        updateUI();
+    }
+
+    // --- 渲染烤箱视图（核心：是否展现倒计时的逻辑分支） ---
+    function renderOvensUI() {
+        ovens.forEach((oven, idx) => {
+            const div = document.getElementById(`oven-${idx}`);
+            let label = idx === 0 ? "炉位 A" : "炉位 B";
+            
+            if (oven.status === "EMPTY") {
+                div.className = "oven-slot";
+                div.innerHTML = `<span>${label}：[🟢 闲置空闲]</span><br><button class="btn" style="font-size:10px; margin-top:4px; padding:2px 6px;" onclick="bakeInOven(${idx})">送入此炉</button>`;
+            } else if (oven.status === "BAKING") {
+                div.className = "oven-slot oven-baking";
+                
+                // 计算当前剩余时间
+                let currentTotalMins = (timeState.hour * 60) + timeState.minute;
+                let startTotalMins = (oven.startHour * 60) + oven.startMin;
+                let bakedDuration = currentTotalMins - startTotalMins;
+                let rem = oven.totalMinutesNeeded - bakedDuration;
+
+                // 核心：根据有没有买定时器改变渲染文本内容
+                let timeDisplay = "";
+                if (gameState.hasTimer) {
+                    timeDisplay = rem > 0 ? `<b style='color:yellow;'>剩余:${rem}分钟</b>` : `<b style='color:lime;'>★已烤好!速取</b>`;
+                } else {
+                    timeDisplay = `<span style='color:#ccc;'>进度: [???] (无定时器，靠心算)</span>`;
+                }
+
+                div.innerHTML = `<span>${label}：🔥 正在剧烈烘烤</span><br>${timeDisplay}<br><button class="btn" style="font-size:10px; margin-top:4px; padding:2px 6px; background:#2c3e50;" onclick="collectOven(${idx})">🛑 强行开炉取出</button>`;
+            }
+        });
     }
 
     window.addEventListener('keydown', e => {
@@ -316,16 +387,19 @@
     });
     window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-    // 顾客刷新生成
+    function log(msg) {
+        const p = document.getElementById('log-panel'); p.innerHTML += `<br>▶ ${msg}`; p.scrollTop = p.scrollHeight;
+    }
+
+    function buyMaterial(type, price) {
+        if (gameState.money >= price) { gameState.money -= price; gameState.inventory[type]++; updateUI(); } 
+    }
+
     function spawnCustomer() {
-        // 只有开业期间（OPEN）才允许刷客人！备货期（PREP）和打烊后（NIGHT）不产生任何客人
         if (timeState.stage !== "OPEN") return;
-
         if (customers.length < 4) {
-            let pool = ['classic'];
-            if (gameState.day >= 3) pool.push('matcha'); if (gameState.day >= 5) pool.push('strawberry');
+            let pool = ['classic']; if (gameState.day >= 3) pool.push('matcha'); if (gameState.day >= 5) pool.push('strawberry');
             let want = pool[Math.floor(Math.random() * pool.length)];
-
             customers.push({
                 x: 740, y: 460, targetX: 720, targetY: 180 + (customers.length * 35), want: want,
                 color: want === 'strawberry' ? '#ff7675' : (want === 'matcha' ? '#78e08f' : '#b2bec3')
@@ -335,20 +409,19 @@
     }
 
     function sellProduct(rKey) {
-        if (customers.length === 0) return alert("前台没有排队的客人。");
+        if (customers.length === 0) return alert("没有顾客在排队。");
         let headCust = customers[0];
-        if (headCust.want !== rKey) return alert("这位客人点的品类不匹配！");
-        if (gameState.products[rKey] <= 0) return alert("该甜品货架没存货了！");
+        if (headCust.want !== rKey) return alert("货品不匹配顾客需求！");
+        if (gameState.products[rKey] <= 0) return alert("货架上没有库存了！");
 
         let inputP = parseFloat(document.getElementById(`price-${rKey}`).value);
         if (inputP > RECIPES[rKey].maxPrice) {
-            log(`😡 价格太黑，顾客翻了个白眼退队走了！`);
+            log(`😡 定价严重超标，顾客气愤退队！`);
         } else {
             gameState.products[rKey]--; gameState.money += inputP;
-            log(`💰 成功售出【${RECIPES[rKey].name}】，收入 +$${inputP.toFixed(2)}`);
+            log(`💰 货到付款！售出【${RECIPES[rKey].name}】，赚得 +$${inputP.toFixed(2)}`);
         }
-        customers.shift();
-        customers.forEach((c, i) => c.targetY = 180 + (i * 35));
+        customers.shift(); customers.forEach((c, i) => c.targetY = 180 + (i * 35));
         updateUI();
     }
 
@@ -358,20 +431,10 @@
         if (activeZone) {
             closeAllModals();
             document.getElementById(`modal-${activeZone}`).style.display = 'block';
-            if (activeZone === 'kitchen') renderBowlUI();
-            
-            // 依据不同的游戏阶段，控制前台弹窗按钮的显示隐藏
+            if (activeZone === 'kitchen') { renderBowlUI(); renderOvensUI(); }
             if (activeZone === 'counter') {
-                if(timeState.stage === "PREP") {
-                    document.getElementById('start-shop-btn').style.display = "block";
-                    document.getElementById('end-day-btn').style.display = "none";
-                } else if(timeState.stage === "OPEN") {
-                    document.getElementById('start-shop-btn').style.display = "none";
-                    document.getElementById('end-day-btn').style.display = "none";
-                } else if(timeState.stage === "NIGHT") {
-                    document.getElementById('start-shop-btn').style.display = "none";
-                    document.getElementById('end-day-btn').style.display = "block";
-                }
+                document.getElementById('start-shop-btn').style.display = timeState.stage === "PREP" ? "block" : "none";
+                document.getElementById('end-day-btn').style.display = timeState.stage === "NIGHT" ? "block" : "none";
             }
         }
     }
@@ -387,11 +450,15 @@
         document.getElementById('inv-cocoa').innerText = gameState.inventory.cocoa;
         document.getElementById('shelf-classic').innerText = gameState.products.classic;
 
-        // 更新顶部小徽章状态样式
         const tag = document.getElementById('status-tag');
         if (timeState.stage === "PREP") { tag.className = "status-badge status-prep"; tag.innerText = "备货阶段"; }
         else if (timeState.stage === "OPEN") { tag.className = "status-badge status-open"; tag.innerText = "营业中"; }
         else if (timeState.stage === "NIGHT") { tag.className = "status-badge status-night"; tag.innerText = "已打烊"; }
+
+        // 控制定时器升级格子的状态切换
+        if(gameState.hasTimer) {
+            document.getElementById('timer-upgrade-cell').innerHTML = "<b style='color:green;'>✓ 已加装数码控制面板</b>";
+        }
 
         if (gameState.day >= 3) {
             document.getElementById('row-mat-matcha').style.opacity = "1";
@@ -429,15 +496,12 @@
         }
 
         const pr = document.getElementById('action-prompt');
-        if (activeZone) { pr.style.display = 'block'; pr.innerText = `📍 【${zones[activeZone].name}】按 E 键管理`; } 
+        if (activeZone) { pr.style.display = 'block'; pr.innerText = `📍 【${zones[activeZone].name}】按 E 键交互`; } 
         else { pr.style.display = 'none'; }
 
-        // 驱动时间轴步进
         updateClockPhysics();
 
-        // 刷客逻辑（内部会判断营业状态）
         spawnTimer++; if (spawnTimer > 240) { spawnTimer = 0; spawnCustomer(); }
-        
         customers.forEach(c => {
             if (c.x > c.targetX) c.x -= 2; if (c.y > c.targetY) c.y -= 2; if (c.y < c.targetY) c.y += 2;
         });
@@ -456,10 +520,10 @@
             ctx.fillText(z.name, z.x + 8, z.y + z.h/2 + 4);
         }
 
-        customers.forEach((c, idx) => {
+        customers.forEach((c) => {
             ctx.fillStyle = c.color; ctx.beginPath(); ctx.arc(c.x, c.y, 11, 0, Math.PI*2); ctx.fill(); ctx.stroke();
             ctx.fillStyle = '#000'; ctx.font = '10px sans-serif'; 
-            ctx.fillText(`点单:${RECIPES[c.want].name.substring(0,2)}`, c.x - 22, c.y - 16);
+            ctx.fillText(`求购:${RECIPES[c.want].name.substring(0,2)}`, c.x - 22, c.y - 16);
         });
 
         ctx.fillStyle = '#e74c3c'; ctx.fillRect(player.x, player.y, player.size, player.size);
