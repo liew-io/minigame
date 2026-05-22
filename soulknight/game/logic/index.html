@@ -380,4 +380,279 @@ const PUZZLES = [
       let t = [];
       if (c===1) t.push({text:"靠窗", cls:"win"});
       if (r===0) t.push({text:"前排", cls:"front"});
-      if (r===2) t.
+      if (r===2) t.push({text:"后排", cls:""});
+      if (r===1) t.push({text:"中排", cls:""});
+      return t;
+    },
+    solution: { "小华":[1,0], "小丽":[0,1], "阿明":[2,0], "婷婷":[0,0], "大雄":[2,1], "珊珊":[1,1] },
+    clues: [
+      "小华坐在走廊侧（左列），他的排号既不是最前也不是最后——他在中间某排。",
+      "小丽只愿意坐靠窗座位，且她要求坐在全班最前面那一排。",
+      "阿明坐在每排最左侧（走廊侧），且阿明所在排号严格大于小华的排号。",
+      "婷婷坐在小丽的正前方同一列——两人同列相邻排，婷婷排号比小丽小1。（注意：婷婷在第几排？）",
+      "大雄不坐前排也不坐中排，他坐在靠窗那侧的最后一排。",
+      "珊珊不在最前排也不在最后排，她坐右列（靠窗列）。",
+      "【交叉验证】小华与阿明都在左列，而阿明排号 > 小华排号 > 0（非最前）。可能排号组合只有一种，请枚举出来。",
+    ],
+    hints: [
+      "小丽 → 第1排右列（靠窗且最前，线索2直接给出）",
+      "婷婷 → 线索4说婷婷在小丽正前方，排号比小丽小1。小丽在第1排(r=0)，r-1=-1不存在！重读：应是婷婷在小丽「正后方」，排号=小丽+1=第2排(r=1)，右列已被珊珊占……继续推！",
+      "大雄 → 第3排右列(r=2, c=1)，最后排靠窗，线索5直接给出",
+    ]
+  },
+  {
+    id: 1,
+    name: "飞机舱位",
+    desc: "8人 · 4排A/B双座 · 多重依赖链",
+    people: ["陈总","林秘","王工","李博","赵医","钱律","孙导","周编"],
+    rows: 4, cols: 2,
+    windowCols: [1], aisleCols: [0], frontRows: [0], backRows: [3],
+    labelFn: (r,c) => `${r+1}排${['A','B'][c]}`,
+    tagsFn: (r,c) => {
+      let t = [];
+      if (c===1) t.push({text:"窗边", cls:"win"});
+      if (c===0) t.push({text:"走廊", cls:"ais"});
+      if (r===0) t.push({text:"头等", cls:"front"});
+      if (r===3) t.push({text:"末排", cls:""});
+      return t;
+    },
+    solution: { "陈总":[0,1], "林秘":[0,0], "王工":[2,0], "李博":[1,1], "赵医":[3,0], "钱律":[1,0], "孙导":[2,1], "周编":[3,1] },
+    clues: [
+      "陈总坚持坐靠窗座（B列），且必须在最前排（第1排）——已付头等舱升舱费。",
+      "林秘必须与陈总同排以便随时服务，但林秘坐走廊座（A列）。",
+      "钱律坐走廊座（A列），且他是所有走廊乘客中排号最靠前的非头等乘客。",
+      "王工也坐走廊座（A列），且王工的排号 = 钱律的排号 + 1（紧邻后排）。",
+      "李博坐靠窗（B列），不坐最前排也不坐最后排，且李博前后各有人（他不在边排）。",
+      "孙导坐在李博的正后方，同为B列——两人紧邻，孙导排号 = 李博排号 + 1。",
+      "赵医不坐靠窗座，他坐在飞机最末排。",
+      "周编坐在赵医同排的靠窗座（B列）。",
+    ],
+    hints: [
+      "陈总→1排B，林秘→1排A（线索1、2直接给出，头等舱占满）",
+      "钱律→2排A（走廊中最靠前的非头等，故第2排），王工→3排A（钱律+1排）",
+      "李博→2排B（靠窗非边排，2排是唯一选项），孙导→3排B（李博正后方）",
+    ]
+  },
+  {
+    id: 2,
+    name: "圆桌会议",
+    desc: "7人 · 环形座1-7号 · 模运算+路径推理",
+    people: ["董事长","CFO","CTO","法务","市场","运营","HR"],
+    rows: 7, cols: 1,
+    windowCols: [], aisleCols: [], frontRows: [0], backRows: [],
+    labelFn: (r,c) => `${r+1}号座`,
+    tagsFn: (r,c) => {
+      let t = [];
+      if (r===0) t.push({text:"主位", cls:"front"});
+      if (r===3) t.push({text:"对主位", cls:""});
+      return t;
+    },
+    solution: { "董事长":[0,0], "法务":[1,0], "CFO":[2,0], "HR":[3,0], "CTO":[4,0], "市场":[5,0], "运营":[6,0] },
+    clues: [
+      "董事长坐1号主位（圆桌起点，固定）。",
+      "法务坐在董事长顺时针紧邻的下一个位置（即2号座），随时低声咨询。",
+      "CFO的座位号 = 法务座位号 + 1（顺时针再走一步），但若超过7则回到1。",
+      "HR坐在圆桌上与董事长正对的位置——7个座位时，正对为第4号（1对4，2对5，以此类推）。",
+      "CTO不坐偶数号座，且CTO与HR之间的最短圆弧距离恰好为1个座位（紧邻）。",
+      "市场与运营相邻（最短路径距离为1），且两人均坐在5、6、7号三座中。",
+      "【终极推导】确认所有7人位置后，验证：CFO与CTO之间的最短路径距离是否 ≥ 2？（即两人不相邻，这是合法约束）",
+    ],
+    hints: [
+      "董事长→1号，法务→2号，CFO→3号（由线索1、2、3依次推出）",
+      "HR→4号（董事长正对位，线索4直接给出）",
+      "CTO→5号（不坐偶数且与HR紧邻，HR在4号，紧邻是3号和5号，3号被CFO占，故5号）",
+    ]
+  }
+];
+
+let currentPuzIdx = 0;
+let selectedPerson = null;
+let placement = {};
+let score = 100;
+let hintCount = 0;
+let usedHintCount = 0;
+
+function getPuz() { return PUZZLES[currentPuzIdx]; }
+
+function initSelector() {
+  const el = document.getElementById('puz-selector');
+  el.innerHTML = '';
+  PUZZLES.forEach((p,i) => {
+    const b = document.createElement('button');
+    b.className = 'puz-tab' + (i===currentPuzIdx?' active':'');
+    b.textContent = `${['第一题','第二题','第三题'][i]}：${p.name}`;
+    b.onclick = () => { currentPuzIdx = i; resetPuzzle(); };
+    el.appendChild(b);
+  });
+}
+
+function resetPuzzle() {
+  placement = {};
+  selectedPerson = null;
+  score = 100;
+  hintCount = 0;
+  usedHintCount = 0;
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('hint-count').textContent = hintCount;
+  document.getElementById('result-bar').className = 'result-bar';
+  initSelector();
+  renderClues();
+  renderHeader();
+  renderGrid();
+  renderTray();
+}
+
+function renderHeader() {
+  const puz = getPuz();
+  document.getElementById('scene-title').textContent = puz.name;
+  document.getElementById('scene-desc').textContent = puz.desc;
+}
+
+function renderClues() {
+  const puz = getPuz();
+  const el = document.getElementById('clue-list');
+  el.innerHTML = '';
+  puz.clues.forEach((c,i) => {
+    const d = document.createElement('div');
+    d.className = 'clue-item';
+    d.id = 'clue-' + i;
+    d.innerHTML = `<span class="clue-num">${String(i+1).padStart(2,'0')}</span><span class="clue-text">${c}</span>`;
+    el.appendChild(d);
+  });
+}
+
+function renderGrid() {
+  const puz = getPuz();
+  const { rows, cols, windowCols, aisleCols } = puz;
+
+  const legend = document.getElementById('grid-legend');
+  legend.innerHTML = '';
+  if (windowCols.length) legend.innerHTML += `<div class="legend-item"><div class="legend-pip" style="background:var(--window-color)"></div>靠窗</div>`;
+  if (aisleCols.length) legend.innerHTML += `<div class="legend-item"><div class="legend-pip" style="background:var(--aisle-color)"></div>走廊</div>`;
+  legend.innerHTML += `<div class="legend-item" style="margin-left:auto; font-size:11px; color:var(--text3)">共 ${rows*cols} 个座位</div>`;
+
+  const grid = document.getElementById('seat-grid');
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.innerHTML = '';
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'seat';
+      if (windowCols.includes(c)) cell.classList.add('window-seat');
+      if (aisleCols.includes(c)) cell.classList.add('aisle-seat');
+      cell.dataset.r = r; cell.dataset.c = c;
+
+      const tags = puz.tagsFn(r, c);
+      const placed = Object.entries(placement).find(([,pos]) => pos[0]===r && pos[1]===c);
+      const tagsHtml = tags.map(t => `<span class="seat-tag ${t.cls}">${t.text}</span>`).join('');
+
+      cell.innerHTML = `
+        <div class="seat-top">
+          <span class="seat-id">${puz.labelFn(r,c)}</span>
+          <div class="seat-tags">${tagsHtml}</div>
+        </div>
+        <div class="seat-person ${placed?'':'empty'}">${placed ? placed[0] : '空置'}</div>
+      `;
+
+      if (selectedPerson && !placed) cell.classList.add('targeted');
+      cell.onclick = () => seatClick(r, c);
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function renderTray() {
+  const puz = getPuz();
+  const tray = document.getElementById('people-tray');
+  tray.innerHTML = '';
+  puz.people.forEach(p => {
+    const chip = document.createElement('div');
+    chip.className = 'person-chip';
+    if (placement[p] !== undefined) chip.classList.add('placed');
+    else if (selectedPerson === p) chip.classList.add('active');
+    chip.textContent = p;
+    chip.onclick = () => {
+      if (placement[p] !== undefined) return;
+      selectedPerson = (selectedPerson === p) ? null : p;
+      renderGrid();
+      renderTray();
+    };
+    tray.appendChild(chip);
+  });
+}
+
+function seatClick(r, c) {
+  if (!selectedPerson) return;
+  const existing = Object.entries(placement).find(([,pos]) => pos[0]===r && pos[1]===c);
+  if (existing) delete placement[existing[0]];
+  placement[selectedPerson] = [r, c];
+  selectedPerson = null;
+  renderGrid();
+  renderTray();
+}
+
+function checkAnswer() {
+  const puz = getPuz();
+  if (Object.keys(placement).length < puz.people.length) {
+    showResult('fail', `还有 ${puz.people.length - Object.keys(placement).length} 人未安置，请先完成所有座位！`);
+    return;
+  }
+  let wrong = [];
+  puz.people.forEach(p => {
+    const s = puz.solution[p];
+    const a = placement[p];
+    if (!a || a[0] !== s[0] || a[1] !== s[1]) wrong.push(p);
+  });
+  document.querySelectorAll('.seat').forEach(cell => {
+    cell.classList.remove('correct','wrong');
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    const placed = Object.entries(placement).find(([,pos]) => pos[0]===r && pos[1]===c);
+    if (placed) {
+      const s = puz.solution[placed[0]];
+      if (s[0]===r && s[1]===c) cell.classList.add('correct');
+      else cell.classList.add('wrong');
+    }
+  });
+  if (wrong.length === 0) {
+    showResult('success', `✓ 完美推理！所有座位全部正确。最终得分：${score} 分`);
+  } else {
+    score = Math.max(0, score - 10);
+    document.getElementById('score-display').textContent = score;
+    showResult('fail', `✗ ${wrong.join('、')} 位置有误（共 ${wrong.length} 人）。扣除10分，剩余 ${score} 分，再仔细推理！`);
+  }
+}
+
+function clearAll() {
+  placement = {};
+  selectedPerson = null;
+  document.getElementById('result-bar').className = 'result-bar';
+  renderGrid();
+  renderTray();
+}
+
+function showHint() {
+  const puz = getPuz();
+  if (usedHintCount >= puz.hints.length) {
+    showResult('info', '提示已全部使用完！只靠推理征服最后难关吧。');
+    return;
+  }
+  const h = puz.hints[usedHintCount];
+  usedHintCount++;
+  hintCount++;
+  score = Math.max(0, score - 5);
+  document.getElementById('hint-count').textContent = hintCount;
+  document.getElementById('score-display').textContent = score;
+  showResult('info', `提示 ${hintCount}：${h}`);
+}
+
+function showResult(type, msg) {
+  const bar = document.getElementById('result-bar');
+  bar.className = `result-bar show ${type}`;
+  bar.textContent = msg;
+}
+
+resetPuzzle();
+</script>
+</body>
+</html>
