@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逻辑推理 · 座位安排</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1916;
+    --surface2: #222018;
+    --border: #2e2c28;
+    --border2: #3d3a34;
+    --text: #e8e4d8;
+    --text2: #9a9488;
+    --text3: #5c5a54;
+    --accent: #c8a96e;
+    --accent2: #9b7c45;
+    --green: #6aab7a;
+    --red: #c46060;
+    --blue: #6b92c8;
+    --window-color: #6aab7a;
+    --aisle-color: #c8a96e;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Serif SC', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .topbar-meta {
+    display: flex;
+    gap: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .meta-val { color: var(--text); font-weight: 600; }
+
+  .puz-selector {
+    display: flex;
+    gap: 0;
+    padding: 0 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .puz-tab {
+    padding: 14px 24px;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .puz-tab:hover { color: var(--text); }
+  .puz-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 105px);
+  }
+
+  .clues-panel {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 28px 24px;
+    overflow-y: auto;
+    max-height: calc(100vh - 105px);
+    position: sticky;
+    top: 105px;
+  }
+  .panel-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .clue-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .clue-item:last-child { border-bottom: none; }
+  .clue-item.used .clue-text { color: var(--text3); text-decoration: line-through; }
+  .clue-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    min-width: 20px;
+    padding-top: 2px;
+  }
+  .clue-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text2);
+  }
+  .clue-item:hover .clue-text { color: var(--text); }
+
+  .right-panel {
+    padding: 28px 32px;
+    overflow-y: auto;
+    max-height: calc(100vh - 105px);
+  }
+
+  .scene-header { margin-bottom: 24px; }
+  .scene-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .scene-desc { font-size: 13px; color: var(--text2); }
+
+  .grid-wrapper {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .grid-legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 16px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .legend-pip { width: 16px; height: 3px; border-radius: 2px; }
+
+  .seat-grid { display: grid; gap: 8px; }
+  .seat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    min-height: 62px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .seat:hover { border-color: var(--border2); background: #201e1b; }
+  .seat.window-seat { border-top: 2px solid var(--window-color); }
+  .seat.aisle-seat { border-left: 2px solid var(--aisle-color); }
+  .seat.targeted {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+    background: #201e14;
+  }
+  .seat.correct { border-color: var(--green); background: #111a13; }
+  .seat.wrong { border-color: var(--red); background: #1a1111; }
+  .seat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .seat-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+  }
+  .seat-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+  .seat-tag {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--border);
+    color: var(--text3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .seat-tag.win { background: #1a2e1e; color: var(--window-color); }
+  .seat-tag.ais { background: #2a2412; color: var(--aisle-color); }
+  .seat-tag.front { background: #1a1e2e; color: var(--blue); }
+  .seat-person {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 6px;
+    min-height: 22px;
+  }
+  .seat-person.empty { color: var(--border2); font-weight: 400; font-size: 12px; }
+
+  .tray-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .people-tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .person-chip {
+    padding: 7px 16px;
+    border: 1px solid var(--border2);
+    border-radius: 99px;
+    font-size: 14px;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text);
+    transition: all 0.15s;
+    font-family: 'Noto Serif SC', serif;
+  }
+  .person-chip:hover { border-color: var(--accent2); color: var(--accent); }
+  .person-chip.active {
+    background: var(--accent2);
+    border-color: var(--accent);
+    color: #0f0e0c;
+    font-weight: 700;
+    box-shadow: 0 0 12px rgba(200,169,110,0.3);
+  }
+  .person-chip.placed {
+    border-color: var(--border);
+    color: var(--text3);
+    cursor: default;
+    text-decoration: line-through;
+  }
+  .person-chip.placed:hover { border-color: var(--border); color: var(--text3); }
+
+  .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .btn {
+    padding: 9px 20px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Noto Serif SC', serif;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface); }
+  .btn-primary {
+    background: var(--accent2);
+    border-color: var(--accent);
+    color: #0f0e0c;
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-danger { border-color: #4a2a2a; color: var(--red); }
+  .btn-danger:hover { background: #1a1111; }
+
+  .result-bar {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+    border: 1px solid;
+    margin-top: 4px;
+  }
+  .result-bar.show { display: block; }
+  .result-bar.success { background: #111a13; border-color: var(--green); color: var(--green); }
+  .result-bar.fail { background: #1a1111; border-color: var(--red); color: #e8a0a0; }
+  .result-bar.info { background: #1a1e14; border-color: var(--accent2); color: var(--accent); }
+
+  .instructions {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 12px;
+    color: var(--text3);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+  .instructions strong { color: var(--text2); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">逻辑推理 · 座位安排</div>
+  <div class="topbar-meta">
+    <span>得分 <span class="meta-val" id="score-display">100</span></span>
+    <span>提示 <span class="meta-val" id="hint-count">0</span> 次</span>
+    <span>难度 <span class="meta-val" style="color:var(--red)">烧脑硬核</span></span>
+  </div>
+</div>
+
+<div class="puz-selector" id="puz-selector"></div>
+
+<div class="main">
+  <div class="clues-panel">
+    <div class="panel-label">线索清单</div>
+    <div id="clue-list"></div>
+  </div>
+  <div class="right-panel">
+    <div class="scene-header">
+      <div class="scene-title" id="scene-title"></div>
+      <div class="scene-desc" id="scene-desc"></div>
+    </div>
+
+    <div class="instructions">
+      <strong>玩法：</strong> 点选下方人名（高亮）→ 点击座位格安置。验证错误扣 <strong>10分</strong>，每次提示扣 <strong>5分</strong>。
+    </div>
+
+    <div class="grid-wrapper">
+      <div class="grid-legend" id="grid-legend"></div>
+      <div class="seat-grid" id="seat-grid"></div>
+    </div>
+
+    <div class="tray-label">待安置人员</div>
+    <div class="people-tray" id="people-tray"></div>
+
+    <div class="controls">
+      <button class="btn btn-primary" onclick="checkAnswer()">验证答案</button>
+      <button class="btn" onclick="showHint()">💡 提示 (−5分)</button>
+      <button class="btn btn-danger" onclick="clearAll()">清除重来</button>
+    </div>
+    <div class="result-bar" id="result-bar"></div>
+  </div>
+</div>
+
+<script>
+const PUZZLES = [
+  {
+    id: 0,
+    name: "教室座位",
+    desc: "6人 · 3排2列课室 · 推断唯一解",
+    people: ["小华","小丽","阿明","婷婷","大雄","珊珊"],
+    rows: 3, cols: 2,
+    windowCols: [1], aisleCols: [], frontRows: [0], backRows: [2],
+    labelFn: (r,c) => `第${r+1}排 ${c===0?'左':'右'}`,
+    tagsFn: (r,c) => {
+      let t = [];
+      if (c===1) t.push({text:"靠窗", cls:"win"});
+      if (r===0) t.push({text:"前排", cls:"front"});
+      if (r===2) t.
