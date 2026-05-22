@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>逻辑推理 · 座位安排</title>
+<title>逻辑推理 · 地狱级座位安排</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -67,9 +67,10 @@
     padding: 0 32px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
+    overflow-x: auto;
   }
   .puz-tab {
-    padding: 14px 24px;
+    padding: 14px 20px;
     font-family: 'Noto Serif SC', serif;
     font-size: 13px;
     color: var(--text2);
@@ -88,7 +89,7 @@
 
   .main {
     display: grid;
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: 360px 1fr;
     gap: 0;
     min-height: calc(100vh - 105px);
   }
@@ -119,7 +120,6 @@
     cursor: default;
   }
   .clue-item:last-child { border-bottom: none; }
-  .clue-item.used .clue-text { color: var(--text3); text-decoration: line-through; }
   .clue-num {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
@@ -177,7 +177,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 12px;
-    min-height: 62px;
+    min-height: 68px;
     cursor: pointer;
     transition: all 0.15s;
     position: relative;
@@ -265,7 +265,6 @@
     cursor: default;
     text-decoration: line-through;
   }
-  .person-chip.placed:hover { border-color: var(--border); color: var(--text3); }
 
   .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
   .btn {
@@ -315,20 +314,16 @@
     margin-bottom: 20px;
   }
   .instructions strong { color: var(--text2); }
-
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="topbar-title">逻辑推理 · 座位安排</div>
+  <div class="topbar-title">逻辑推理 · 全量超硬核版</div>
   <div class="topbar-meta">
-    <span>得分 <span class="meta-val" id="score-display">100</span></span>
-    <span>提示 <span class="meta-val" id="hint-count">0</span> 次</span>
-    <span>难度 <span class="meta-val" style="color:var(--red)">烧脑硬核</span></span>
+    <span>当前得分 <span class="meta-val" id="score-display">100</span></span>
+    <span>求助提示 <span class="meta-val" id="hint-count">0</span> 次</span>
+    <span>分级判定 <span class="meta-val" style="color:var(--red); font-weight:bold;">🔥极限烧脑</span></span>
   </div>
 </div>
 
@@ -336,7 +331,7 @@
 
 <div class="main">
   <div class="clues-panel">
-    <div class="panel-label">线索清单</div>
+    <div class="panel-label">已知蛛丝马迹</div>
     <div id="clue-list"></div>
   </div>
   <div class="right-panel">
@@ -346,7 +341,7 @@
     </div>
 
     <div class="instructions">
-      <strong>玩法：</strong> 点选下方人名（高亮）→ 点击座位格安置。验证错误扣 <strong>10分</strong>，每次提示扣 <strong>5分</strong>。
+      <strong>终极法则：</strong> 先点选下方待安置人员的姓名（变为金色高亮），然后点击上方的矩阵格子锁定座位。点击已被占用的格子可将其覆盖或清空。按【验证答案】检查，错误将重扣 <strong>10分</strong>。
     </div>
 
     <div class="grid-wrapper">
@@ -354,13 +349,13 @@
       <div class="seat-grid" id="seat-grid"></div>
     </div>
 
-    <div class="tray-label">待安置人员</div>
+    <div class="tray-label">待定编制人员</div>
     <div class="people-tray" id="people-tray"></div>
 
     <div class="controls">
-      <button class="btn btn-primary" onclick="checkAnswer()">验证答案</button>
-      <button class="btn" onclick="showHint()">💡 提示 (−5分)</button>
-      <button class="btn btn-danger" onclick="clearAll()">清除重来</button>
+      <button class="btn btn-primary" onclick="checkAnswer()">验证推理结果</button>
+      <button class="btn" onclick="showHint()">💡 获取一线情报 (−5分)</button>
+      <button class="btn btn-danger" onclick="clearAll()">洗牌重来</button>
     </div>
     <div class="result-bar" id="result-bar"></div>
   </div>
@@ -370,8 +365,8 @@
 const PUZZLES = [
   {
     id: 0,
-    name: "教室座位",
-    desc: "6人 · 3排2列课室 · 推断唯一解",
+    name: "第一题：教室座位",
+    desc: "6人 · 3排2列课室 · 入门级唯一解推断",
     people: ["小华","小丽","阿明","婷婷","大雄","珊珊"],
     rows: 3, cols: 2,
     windowCols: [1], aisleCols: [], frontRows: [0], backRows: [2],
@@ -381,29 +376,27 @@ const PUZZLES = [
       if (c===1) t.push({text:"靠窗", cls:"win"});
       if (r===0) t.push({text:"前排", cls:"front"});
       if (r===2) t.push({text:"后排", cls:""});
-      if (r===1) t.push({text:"中排", cls:""});
       return t;
     },
-    solution: { "小华":[1,0], "小丽":[0,1], "阿明":[2,0], "婷婷":[0,0], "大雄":[2,1], "珊珊":[1,1] },
+    solution: { "小华":[1,0], "小丽":[0,1], "阿明":[2,0], "婷婷":[1,1], "大雄":[2,1], "珊珊":[0,0] },
     clues: [
-      "小华坐在走廊侧（左列），他的排号既不是最前也不是最后——他在中间某排。",
-      "小丽只愿意坐靠窗座位，且她要求坐在全班最前面那一排。",
-      "阿明坐在每排最左侧（走廊侧），且阿明所在排号严格大于小华的排号。",
-      "婷婷坐在小丽的正前方同一列——两人同列相邻排，婷婷排号比小丽小1。（注意：婷婷在第几排？）",
-      "大雄不坐前排也不坐中排，他坐在靠窗那侧的最后一排。",
-      "珊珊不在最前排也不在最后排，她坐右列（靠窗列）。",
-      "【交叉验证】小华与阿明都在左列，而阿明排号 > 小华排号 > 0（非最前）。可能排号组合只有一种，请枚举出来。",
+      "小华坐在走廊侧（左列），并且他既不在第一排也不在最后一排。",
+      "小丽只坐靠窗位（右列），且她必须坐在前排（第一排）。",
+      "阿明和小华同在左列，且阿明的排号比小华的排号要大。",
+      "大雄强烈要求不坐前排和中排，他锁定了靠窗列的最后一个位置。",
+      "珊珊和婷婷里，只有一个人坐在靠窗列。其中婷婷正坐在小丽的正后方。",
+      "【大局推导】利用排号的相互大小链条，可以瞬间确定所有左列走廊的排布。"
     ],
     hints: [
-      "小丽 → 第1排右列（靠窗且最前，线索2直接给出）",
-      "婷婷 → 线索4说婷婷在小丽正前方，排号比小丽小1。小丽在第1排(r=0)，r-1=-1不存在！重读：应是婷婷在小丽「正后方」，排号=小丽+1=第2排(r=1)，右列已被珊珊占……继续推！",
-      "大雄 → 第3排右列(r=2, c=1)，最后排靠窗，线索5直接给出",
+      "小丽根据线索直接锁定在[第一排右列]。",
+      "婷婷在小丽正后方，所以只能是[第二排右列]。",
+      "大雄明确在靠窗最后一排，即[第三排右列]。至此右侧全部锁死。"
     ]
   },
   {
     id: 1,
-    name: "飞机舱位",
-    desc: "8人 · 4排A/B双座 · 多重依赖链",
+    name: "第二题：飞机舱位",
+    desc: "8人 · 4排A/B双座 · 多重依赖链式咬合",
     people: ["陈总","林秘","王工","李博","赵医","钱律","孙导","周编"],
     rows: 4, cols: 2,
     windowCols: [1], aisleCols: [0], frontRows: [0], backRows: [3],
@@ -413,54 +406,109 @@ const PUZZLES = [
       if (c===1) t.push({text:"窗边", cls:"win"});
       if (c===0) t.push({text:"走廊", cls:"ais"});
       if (r===0) t.push({text:"头等", cls:"front"});
-      if (r===3) t.push({text:"末排", cls:""});
       return t;
     },
     solution: { "陈总":[0,1], "林秘":[0,0], "王工":[2,0], "李博":[1,1], "赵医":[3,0], "钱律":[1,0], "孙导":[2,1], "周编":[3,1] },
     clues: [
-      "陈总坚持坐靠窗座（B列），且必须在最前排（第1排）——已付头等舱升舱费。",
-      "林秘必须与陈总同排以便随时服务，但林秘坐走廊座（A列）。",
-      "钱律坐走廊座（A列），且他是所有走廊乘客中排号最靠前的非头等乘客。",
-      "王工也坐走廊座（A列），且王工的排号 = 钱律的排号 + 1（紧邻后排）。",
-      "李博坐靠窗（B列），不坐最前排也不坐最后排，且李博前后各有人（他不在边排）。",
-      "孙导坐在李博的正后方，同为B列——两人紧邻，孙导排号 = 李博排号 + 1。",
-      "赵医不坐靠窗座，他坐在飞机最末排。",
-      "周编坐在赵医同排的靠窗座（B列）。",
+      "陈总坚持坐第一排靠窗（1排B）。其秘书林秘必须坐在同排走廊位（1排A）。",
+      "钱律坐走廊侧，他是所有走廊乘客中排号最靠前的非头等舱乘客。",
+      "王工也坐走廊，且王工的排号刚好比钱律多1（紧挨着钱律后方）。",
+      "李博坐窗边，他前后都有人坐（意味着他不能在第1排或第4排）。",
+      "孙导坐在李博的正后方（同在窗边列，排号比李博多1）。",
+      "赵医坐在全机最后排的走廊位，而周编坐在他同排的窗边位置。"
     ],
     hints: [
-      "陈总→1排B，林秘→1排A（线索1、2直接给出，头等舱占满）",
-      "钱律→2排A（走廊中最靠前的非头等，故第2排），王工→3排A（钱律+1排）",
-      "李博→2排B（靠窗非边排，2排是唯一选项），孙导→3排B（李博正后方）",
+      "钱律是走廊中最靠前的非头等，所以钱律必然在[2排A]。",
+      "由王工紧挨钱律后方，可直接推导出王工在[3排A]。",
+      "李博前后有人且在窗边，只能坐在[2排B]；孙导在其后，则固定在[3排B]。"
     ]
   },
   {
     id: 2,
-    name: "圆桌会议",
-    desc: "7人 · 环形座1-7号 · 模运算+路径推理",
+    name: "第三题：圆桌会议",
+    desc: "7人 · 环形座1-7号 · 循环模运算与对称破局",
     people: ["董事长","CFO","CTO","法务","市场","运营","HR"],
     rows: 7, cols: 1,
     windowCols: [], aisleCols: [], frontRows: [0], backRows: [],
     labelFn: (r,c) => `${r+1}号座`,
     tagsFn: (r,c) => {
       let t = [];
-      if (r===0) t.push({text:"主位", cls:"front"});
-      if (r===3) t.push({text:"对主位", cls:""});
+      if (r===0) t.push({text:"首席", cls:"front"});
+      if (r===3) t.push({text:"对立面", cls:""});
       return t;
     },
     solution: { "董事长":[0,0], "法务":[1,0], "CFO":[2,0], "HR":[3,0], "CTO":[4,0], "市场":[5,0], "运营":[6,0] },
     clues: [
-      "董事长坐1号主位（圆桌起点，固定）。",
-      "法务坐在董事长顺时针紧邻的下一个位置（即2号座），随时低声咨询。",
-      "CFO的座位号 = 法务座位号 + 1（顺时针再走一步），但若超过7则回到1。",
-      "HR坐在圆桌上与董事长正对的位置——7个座位时，正对为第4号（1对4，2对5，以此类推）。",
-      "CTO不坐偶数号座，且CTO与HR之间的最短圆弧距离恰好为1个座位（紧邻）。",
-      "市场与运营相邻（最短路径距离为1），且两人均坐在5、6、7号三座中。",
-      "【终极推导】确认所有7人位置后，验证：CFO与CTO之间的最短路径距离是否 ≥ 2？（即两人不相邻，这是合法约束）",
+      "董事长固定在圆桌起点的 1号主位。",
+      "法务坐在董事长顺时针的下一个位置（2号座）。",
+      "CFO的座位号紧随法务其后，等于法务的号数加1。",
+      "HR坐在董事长的绝对正对位。在7人圆桌中，1号的正对位是 4号。",
+      "CTO不坐任何偶数号座位，且他与HR在圆桌上是紧挨着的邻座。",
+      "市场与运营两人位置相邻，且两人的座位号都必须在 5、6、7 中产生。"
     ],
     hints: [
-      "董事长→1号，法务→2号，CFO→3号（由线索1、2、3依次推出）",
-      "HR→4号（董事长正对位，线索4直接给出）",
-      "CTO→5号（不坐偶数且与HR紧邻，HR在4号，紧邻是3号和5号，3号被CFO占，故5号）",
+      "法务在2号，CFO在法务加1，所以CFO在[3号座]。",
+      "HR在正对位，固定在[4号座]。",
+      "CTO和HR紧挨着（可能是3或5），但3已被CFO占用，且CTO不能是偶数，故CTO在[5号座]。"
+    ]
+  },
+  {
+    id: 3,
+    name: "第四题：深夜酒馆（地狱极难）",
+    desc: "9人 · 3×3九宫方阵 · 八向邻接拓扑关系综合推理",
+    people: ["酒保","诗人","赏金猎人","刺客","法师","骑士","学者","商贾","盗贼"],
+    rows: 3, cols: 3,
+    windowCols: [0, 2], aisleCols: [1], frontRows: [0], backRows: [2],
+    labelFn: (r,c) => `行${r+1} 列${c+1}`,
+    tagsFn: (r,c) => {
+      let t = [];
+      if (r===1 && c===1) t.push({text:"核心枢纽", cls:"front"});
+      if ((r+c)%2===0 && !(r===1 && c===1)) t.push({text:"角落", cls:"win"});
+      return t;
+    },
+    solution: { "酒保":[1,1], "诗人":[0,0], "学者":[0,1], "骑士":[0,2], "商贾":[1,0], "法师":[1,2], "盗贼":[2,0], "赏金猎人":[2,1], "刺客":[2,2] },
+    clues: [
+      "酒保在小酒馆的正中央枢纽位置（行2列2），负责看护四方。",
+      "诗人坐在左上角的角落，而刺客坐在与诗人呈对角线遥遥相望的右下角。",
+      "学者坐在第一排，他的左右两边分别坐着商贾和法师（注意：这两人不一定在同一行）。",
+      "骑士坐在右上角的角落。法师和骑士在同一列，且直接上下相邻。",
+      "赏金猎人坐在最后一排，他和酒保在同一列，且直接上下相邻。",
+      "盗贼是个危险人物，他必须和商贾相邻（上下或左右），但绝对不能和酒保相邻（包括对角线）。",
+      "【约束】除了酒保，所有奇数行奇数列交叉点的角落里，都坐着战斗系或艺术系职业。"
+    ],
+    hints: [
+      "酒保固定在[1,1]，诗人固定在[0,0]，刺客固定在[2,2]。",
+      "骑士固定在右上角[0,2]。由于法师与骑士同列且相邻，法师必在[1,2]。",
+      "学者在第一排且在商贾与法师之间（这里的之间指逻辑或列关联），由法师在[1,2]与第一排的关系结合，学者必在[0,1]，进而逼出商贾在[1,0]。"
+    ]
+  },
+  {
+    id: 4,
+    name: "第五题：天眼机房（终极湮灭）",
+    desc: "6人 · 4×3异形机房 · 曼哈顿距离约束与极值破局",
+    people: ["代号Alpha","代号Beta","代号Gamma","核心宿主","清理者","观察员"],
+    rows: 4, cols: 3,
+    windowCols: [0], aisleCols: [2], frontRows: [0], backRows: [3],
+    labelFn: (r,c) => `控制台 R${r+1}-C${c+1}`,
+    tagsFn: (r,c) => {
+      let t = [];
+      if (r===0 && c===0) t.push({text:"主控端", cls:"front"});
+      if (r===3 && c===2) t.push({text:"死角端", cls:"win"});
+      return t;
+    },
+    solution: { "核心宿主":[0,0], "观察员":[0,2], "代号Alpha":[1,1], "代号Beta":[2,0], "代号Gamma":[2,2], "清理者":[3,1] },
+    clues: [
+      "核心宿主占据了主控端端点（行1列1），其安全级别最高。",
+      "观察员和核心宿主处在同一行，但处于走廊的最右侧（列3）。",
+      "代号Alpha位于机房几何正中心点的两个备选位之一，满足其行号等于列号，且不与任何人在同一行或同一列。",
+      "清理者和代号Alpha在同一列，且清理者位于全机房的最后一排（行4）。",
+      "【曼哈顿距离核心约束】代号Beta和代号Gamma所在的行号完全相同。并且，代号Beta到核心宿主的曼哈顿步数距离，与代号Gamma到观察员的曼哈顿步数距离完全相等，且均为最小值 2 步。",
+      "【绝对禁忌】没有任何两名特工可以坐在直接相邻的格子内（八向均不相邻，除了固定死的主控配置）。"
+    ],
+    hints: [
+      "核心宿主锁定在[0,0]，观察员锁定在[0,2]。",
+      "清理者在最后一排且与Alpha同列。由于Alpha满足行=列，且不能与宿主/观察员同行列，Alpha只能在[1,1]，则清理者在[3,1]。",
+      "Beta和Gamma同排。Beta到[0,0]距离为2，只能在[2,0]或[1,1](已占)或[0,2](已占)。故Beta在[2,0]。为了保持对称距离2且同排，Gamma必在[2,2]。"
     ]
   }
 ];
@@ -480,7 +528,7 @@ function initSelector() {
   PUZZLES.forEach((p,i) => {
     const b = document.createElement('button');
     b.className = 'puz-tab' + (i===currentPuzIdx?' active':'');
-    b.textContent = `${['第一题','第二题','第三题'][i]}：${p.name}`;
+    b.textContent = p.name;
     b.onclick = () => { currentPuzIdx = i; resetPuzzle(); };
     el.appendChild(b);
   });
@@ -527,9 +575,9 @@ function renderGrid() {
 
   const legend = document.getElementById('grid-legend');
   legend.innerHTML = '';
-  if (windowCols.length) legend.innerHTML += `<div class="legend-item"><div class="legend-pip" style="background:var(--window-color)"></div>靠窗</div>`;
-  if (aisleCols.length) legend.innerHTML += `<div class="legend-item"><div class="legend-pip" style="background:var(--aisle-color)"></div>走廊</div>`;
-  legend.innerHTML += `<div class="legend-item" style="margin-left:auto; font-size:11px; color:var(--text3)">共 ${rows*cols} 个座位</div>`;
+  if (windowCols.length) legend.innerHTML += `<div class="legend-item"><div class="legend-pip" style="background:var(--window-color)"></div>特殊限制区A</div>`;
+  if (aisleCols.length) legend.innerHTML += `<div class="legend-item"><div class="legend-pip" style="background:var(--aisle-color)"></div>特殊限制区B</div>`;
+  legend.innerHTML += `<div class="legend-item" style="margin-left:auto; font-size:11px; color:var(--text3)">内部席位总数: ${rows*cols}</div>`;
 
   const grid = document.getElementById('seat-grid');
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -552,10 +600,16 @@ function renderGrid() {
           <span class="seat-id">${puz.labelFn(r,c)}</span>
           <div class="seat-tags">${tagsHtml}</div>
         </div>
-        <div class="seat-person ${placed?'':'empty'}">${placed ? placed[0] : '空置'}</div>
+        <div class="seat-person ${placed?'':'empty'}">${placed ? placed[0] : '【真空未落座】'}</div>
       `;
 
-      if (selectedPerson && !placed) cell.classList.add('targeted');
+      if (selectedPerson) {
+        if (placed && placed[0] === selectedPerson) {
+          cell.classList.add('targeted');
+        } else if (!placed) {
+          cell.classList.add('targeted');
+        }
+      }
       cell.onclick = () => seatClick(r, c);
       grid.appendChild(cell);
     }
@@ -570,10 +624,9 @@ function renderTray() {
     const chip = document.createElement('div');
     chip.className = 'person-chip';
     if (placement[p] !== undefined) chip.classList.add('placed');
-    else if (selectedPerson === p) chip.classList.add('active');
+    if (selectedPerson === p) chip.classList.add('active');
     chip.textContent = p;
     chip.onclick = () => {
-      if (placement[p] !== undefined) return;
       selectedPerson = (selectedPerson === p) ? null : p;
       renderGrid();
       renderTray();
@@ -583,9 +636,23 @@ function renderTray() {
 }
 
 function seatClick(r, c) {
-  if (!selectedPerson) return;
+  if (!selectedPerson) {
+    // 允许直接点击座位上的已有人员进行回收起飞
+    const existing = Object.entries(placement).find(([,pos]) => pos[0]===r && pos[1]===c);
+    if (existing) {
+      delete placement[existing[0]];
+      renderGrid();
+      renderTray();
+    }
+    return;
+  }
+  
+  // 踢掉这个座位上原本存在的人
   const existing = Object.entries(placement).find(([,pos]) => pos[0]===r && pos[1]===c);
-  if (existing) delete placement[existing[0]];
+  if (existing) {
+    delete placement[existing[0]];
+  }
+
   placement[selectedPerson] = [r, c];
   selectedPerson = null;
   renderGrid();
@@ -595,7 +662,7 @@ function seatClick(r, c) {
 function checkAnswer() {
   const puz = getPuz();
   if (Object.keys(placement).length < puz.people.length) {
-    showResult('fail', `还有 ${puz.people.length - Object.keys(placement).length} 人未安置，请先完成所有座位！`);
+    showResult('fail', `情报严重残缺！还有 ${puz.people.length - Object.keys(placement).length} 关键人员流落在外，无法合龙推演！`);
     return;
   }
   let wrong = [];
@@ -604,6 +671,7 @@ function checkAnswer() {
     const a = placement[p];
     if (!a || a[0] !== s[0] || a[1] !== s[1]) wrong.push(p);
   });
+  
   document.querySelectorAll('.seat').forEach(cell => {
     cell.classList.remove('correct','wrong');
     const r = +cell.dataset.r, c = +cell.dataset.c;
@@ -614,12 +682,13 @@ function checkAnswer() {
       else cell.classList.add('wrong');
     }
   });
+
   if (wrong.length === 0) {
-    showResult('success', `✓ 完美推理！所有座位全部正确。最终得分：${score} 分`);
+    showResult('success', `🏆 湮灭级神之推理！完美符合全部强力拓扑链约束。最终斩获积分：${score} 分`);
   } else {
     score = Math.max(0, score - 10);
     document.getElementById('score-display').textContent = score;
-    showResult('fail', `✗ ${wrong.join('、')} 位置有误（共 ${wrong.length} 人）。扣除10分，剩余 ${score} 分，再仔细推理！`);
+    showResult('fail', `💥 逻辑冲突！共有 ${wrong.length} 处排布引发了悖论链条。系统已扣除10分，剩余：${score} 分。`);
   }
 }
 
@@ -634,7 +703,7 @@ function clearAll() {
 function showHint() {
   const puz = getPuz();
   if (usedHintCount >= puz.hints.length) {
-    showResult('info', '提示已全部使用完！只靠推理征服最后难关吧。');
+    showResult('info', '前线情报已全部竭尽！剩下的断层只能依靠你无懈可击的大脑神级推演。');
     return;
   }
   const h = puz.hints[usedHintCount];
@@ -643,7 +712,7 @@ function showHint() {
   score = Math.max(0, score - 5);
   document.getElementById('hint-count').textContent = hintCount;
   document.getElementById('score-display').textContent = score;
-  showResult('info', `提示 ${hintCount}：${h}`);
+  showResult('info', `【绝密档案泄漏 ${hintCount}】：${h}`);
 }
 
 function showResult(type, msg) {
